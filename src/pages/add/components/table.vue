@@ -44,6 +44,7 @@
             <div v-if="scope.row[index]">
               <span v-if="scope.row[index].is_delete === 0">/</span>
               <div v-else-if="scope.row.rowType === 1">
+                <span class="badge" v-if="scope.row[index].topText">锁定</span>
                 <!-- 计划完成：展示 -->
                 <div v-if="scope.row.isShow || scope.row[index].is_complete !== 0">
                   {{scope.row[index].time}}
@@ -125,13 +126,6 @@
           <el-input class="comInput2" v-model="d_data.change_remaark" size="mini" placeholder="请填写调整/异常原因"></el-input>
         </div>
       </div>
-      <!-- <div class="lineBox">
-        <div class="lineLabel" style="width: auto;">&nbsp;&nbsp;&nbsp;是否根据当前节点的时间去计算其他节点：</div>
-        <div class="lineText">
-          <el-radio v-model="d_data.is_computed" :label="true">是</el-radio>
-          <el-radio v-model="d_data.is_computed" :label="false">否</el-radio>
-        </div>
-      </div> -->
       <!-- 弹出层：按钮 -->
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" size="mini" @click="submit(d_data.title)">保 存</el-button>
@@ -145,18 +139,12 @@
 <script>
 import { mapState, mapGetters } from 'vuex'
 export default {
-  props: ['listIndex', 'listType'], // 表格索引, 表格type
   data() {
     return {
-      asdType: '', // 页面类型：大货 || 工厂
       /* 弹出层 */
       dialogVisible: false, // 弹出层：是否显示
       d_data: {} //            弹出层：数据
     }
-  },
-  created() {
-    const local = JSON.parse(localStorage.getItem('asd')) || { asd: 'dh' }
-    this.asdType = local.asd
   },
   computed: {
     ...mapState(['nodeData', 'gantt_type', 'item_name']),
@@ -387,6 +375,21 @@ export default {
 .comInput2 {
   flex: 1;
 }
+
+/*** 角标 ***/
+.badge {
+  font-size: 6px;
+  position: absolute;
+  top: 2px;
+  right: -50px;
+  transform: rotate(35deg);
+  transform-origin: center;
+  color: #ffffff;
+  font-size: 10px;
+  line-height: 16px;
+  background: #C0C4CC;
+  padding: 0 50px;
+}
 </style>
 
 <style>
@@ -399,5 +402,10 @@ export default {
 .errorPicker > input {
   color: #F56C6C !important;
   border-color: #F56C6C !important;
+}
+
+/*** 表格 ***/
+.comTable td {
+  overflow: hidden !important;
 }
 </style>

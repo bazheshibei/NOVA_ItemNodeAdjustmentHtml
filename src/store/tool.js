@@ -82,16 +82,26 @@ Tool.returnTableData = function (state) {
       const otherData = { is_change_template: 1, node_template_id: activeTemplateId } // 是否更新模板，新模板ID
       const nodeTempleteDetail = Object.assign({}, templateObj[activeTemplateId].nodeTempleteDetail) // 新模板内的节点
       data.itemNodeDataList.forEach(function (node) {
-        if (nodeTempleteDetail[node.node_id]) {
-          /* 合并__ 模板有，原始有：根据模板公式重新计算 */
-          node.adjustment_type = 2 // 变更类型：变更
-          data[node.node_id] = Object.assign({}, node, nodeTempleteDetail[node.node_id], otherData)
-          delete nodeTempleteDetail[node.node_id]
-        } else {
-          /* 删除__ 模板没有，原始有：标记删除 */
-          node.is_delete = 0
-          node.adjustment_type = 3 // 变更类型：删除
-          data[node.node_id] = Object.assign({}, node, otherData)
+        /* 可以更新的节点审核状态：未完成 || 审核驳回 || 撤销审核 */
+        if (node.node_audit_status === 0 || node.node_audit_status === 4 || node.node_audit_status === 6) {
+          if (nodeTempleteDetail[node.node_id]) {
+            /* 合并__ 模板有，原始有：根据模板公式重新计算 */
+            const newNodeData = {}
+            for (const x in nodeTempleteDetail[node.node_id]) {
+              const item = nodeTempleteDetail[node.node_id][x]
+              if (item !== null && item !== '') {
+                newNodeData[x] = item
+              }
+            }
+            node.adjustment_type = 2 // 变更类型：变更
+            data[node.node_id] = Object.assign({}, node, newNodeData, otherData)
+            delete nodeTempleteDetail[node.node_id]
+          } else {
+            /* 删除__ 模板没有，原始有：标记删除 */
+            node.is_delete = 0
+            node.adjustment_type = 3 // 变更类型：删除
+            data[node.node_id] = Object.assign({}, node, otherData)
+          }
         }
       })
       /* 新增__ 模板有，原始没有：新增 */
@@ -104,7 +114,7 @@ Tool.returnTableData = function (state) {
       for (const x in data) {
         const node = data[x]
         if (node instanceof Object && node.node_id) {
-          startEndDateMap['${' + node.node_code + '}'] = node.first_plant_enddate
+          startEndDateMap['${' + node.node_code + '}'] = node.plan_enddate || node.first_plant_enddate
         }
       }
       /* 计算 */
@@ -121,33 +131,58 @@ Tool.returnTableData = function (state) {
           node.change_plan_time = node.change_plan_time || ''
           node.error = status
           node.maxMinText = maxMinText
-          node.first_plant_enddate = now
+          node.plan_enddate = now
           node.time = now
           node.api_submit_type = 3
+          node.text = node.change_remaark
           data[node.node_id] = Object.assign({}, node)
         }
       }
     } else {
       /* ----- 初始化 || 不切换新模板 ----- */
       const otherData = { is_change_template: 0, node_template_id: '' } // 是否更新模板，新模板ID
+      /* 提取：甘特表变更信息 */
+      const { adjusmentDetailList = [] } = data
+      const newNodeObj = {} //  变更后的属性
+      const nullNodeObj = {} // 变更后的空属性
+      adjusmentDetailList.forEach(function (item) {
+        const obj = {}
+        const obj_null = {}
+        for (const x in item) {
+          if (item[x] && item[x] !== null && item[x] !== '') {
+            obj[x] = item[x]
+          } else {
+            obj_null[x] = item[x]
+          }
+        }
+        newNodeObj[item.item_node_id] = obj
+        nullNodeObj[item.item_node_id] = obj_null
+      })
+      /* 提取：审核记录 */
+      const { nodeAuditDetailMapList = [] } = data
+      const nodeAuditDetailObj = {} // 节点的审核记录
+      nodeAuditDetailMapList.forEach(function (item) {
+        nodeAuditDetailObj[item.item_node_id] = item
+      })
       /* 提取：变量日期 */
       const startEndDateMap = JSON.parse(data.jzz_data || '{}')
       data.itemNodeDataList.forEach(function (node) {
-        startEndDateMap['${' + node.node_code + '}'] = node.first_plant_enddate
+        startEndDateMap['${' + node.node_code + '}'] = node.plan_enddate || node.first_plant_enddate
       })
       /* 计算 */
       data.itemNodeDataList.forEach(function (node) {
-        /* 提取：甘特表变更信息 */
-        const { adjusmentDetailList = [] } = data
-        adjusmentDetailList.forEach(function (item) {
-          if (item.item_node_id === node.item_node_id) {
-            node.adjusmentDetailObj = item
-          }
-        })
+        /* 覆盖：新模板 -> 旧数据 */
+        if (newNodeObj[node.item_node_id]) {
+          const newNodeData = newNodeObj[node.item_node_id] || {} //         变更信息（属性值）
+          const nullNodeData = nullNodeObj[node.item_node_id] || {} //       变更信息（空属性）
+          const otherNodeData = { is_new: true } //                          标记：变更的节点
+          const auditDetail = nodeAuditDetailObj[node.item_node_id] || {} // 审核记录
+          node = Object.assign({}, nullNodeData, node, newNodeData, auditDetail, otherNodeData)
+        }
         /* 计算 */
-        const { change_plan_time, frist_plan_time, sys_clac_formula, max_section_value, min_section_value } = node
-        const first_plant_enddate = node.first_plant_enddate ? node.first_plant_enddate : that._returnTime(sys_clac_formula, startEndDateMap)
-        const now = node.time ? node.time : (node.adjusmentDetailObj ? node.adjusmentDetailObj.after_plan_enddate : change_plan_time || frist_plan_time || first_plant_enddate) // 修改过
+        const { plan_enddate, sys_clac_formula, max_section_value, min_section_value } = node
+        const first_plant_enddate = node.first_plant_enddate || that._returnTime(sys_clac_formula, startEndDateMap)
+        const now = node.time || plan_enddate || first_plant_enddate
         const max = that._returnTime(max_section_value, startEndDateMap)
         const min = that._returnTime(min_section_value, startEndDateMap)
         const { status, maxMinText } = that._isError(max, min, now, order_time, deliver_date)
@@ -156,6 +191,12 @@ Tool.returnTableData = function (state) {
         node.first_plant_enddate = first_plant_enddate
         node.time = now
         node.api_submit_type = 2
+        node.text = node.change_remaark
+        if (node.node_audit_status === 1 || node.node_audit_status === 2) { //        1草稿中 2完成待审核
+          node.topText = '完成待审核'
+        } else if (node.node_audit_status === 3 || node.node_audit_status === 5) { // 3审核通过 5无审核
+          node.topText = '节点完成'
+        }
         /* 赋值 */
         data[node.node_id] = Object.assign({}, node, otherData)
       })
@@ -164,15 +205,6 @@ Tool.returnTableData = function (state) {
     data.isShow = true
     data.rowType = 1
     data.count = 1
-    // if (data.is_thread === 1) {
-    //   arr_1.push(data) // 主线
-    // } else if (data.is_thread !== 1 && data.audit_status !== 1) {
-    //   arr_2.push(data) // 非草稿状态的分线
-    // } else {
-    //   data.isShow = false
-    //   arr_3.push(Object.assign({}, data, { count: 2, rowType: 1 })) // 草稿分线
-    //   arr_3.push(Object.assign({}, data, { count: 0, rowType: 2 })) // 草稿分线
-    // }
     if (data.is_thread === 1) {
       arr_1.push(data) // 主线
     } else {
@@ -189,7 +221,6 @@ Tool.returnTableData = function (state) {
   })
   /* ----- 返回 ----- */
   const arr = [].concat(arr_1, arr_2, arr_3)
-  console.log('xxxxx ----- ', arr)
   return arr
 }
 
@@ -210,15 +241,16 @@ Tool.returnTableList = function (state) {
   const that = this
   let startEndDateMap = {}
   if (computedTime) {
+    const returnArr = []
     /* ----- 处理当前节点 ----- */
     const [dataIndex, node_id] = changeIndexId.split('_')
-    tableData.map(function (item, index) {
+    tableData.forEach(function (item, index) {
       /* 提取：变量日期（添加全部节点） */
       startEndDateMap = Object.assign({}, JSON.parse(item.jzz_data || '{}'))
       for (const x in item) {
         const node = item[x]
-        if (node instanceof Object && node.node_id && node.node_code && node.first_plant_enddate) {
-          startEndDateMap['${' + node.node_code + '}'] = node.first_plant_enddate
+        if (node instanceof Object && node.node_id && node.node_code && (node.plan_enddate || node.first_plant_enddate)) {
+          startEndDateMap['${' + node.node_code + '}'] = node.plan_enddate || node.first_plant_enddate
         }
       }
       if (index === parseInt(dataIndex)) {
@@ -244,10 +276,13 @@ Tool.returnTableList = function (state) {
         } else {
           startEndDateMap['${' + node.node_code + '}'] = node.time
         }
+        returnArr.push(Object.assign({}, item))
+      } else {
+        returnArr.push(Object.assign({}, item))
       }
     })
     /* ----- 处理其他节点 ----- */
-    tableData.map(function (item, index) {
+    returnArr.map(function (item, index) {
       if (item.count) {
         /* 提取：节点ID */
         const ids = []
@@ -278,8 +313,10 @@ Tool.returnTableList = function (state) {
         })
       }
     })
+    return returnArr
+  } else {
+    return tableData
   }
-  return tableData
 }
 
 /**
@@ -310,18 +347,22 @@ Tool.returnSubmitData = function (tableList, activeTemplateId) {
             error,
             is_quote, //                                  是否被引用
             item_node_id, //                              项目节点id
-            first_plant_enddate: before_plan_enddate, //  调整前计划完成时间
+            plan_enddate: before_plan_enddate, //         调整前计划完成时间
             time: after_plan_enddate, //                  调整后计划完成时间
             change_remaark: adjustment_detail_explain, // 调整说明
-            adjustment_detail_type = '1' //               调整状态1重新调整，2驳回后调整
+            adjustment_detail_type = '1', //              调整状态1重新调整，2驳回后调整
+            text
           } = node
-          console.log('node ----- ', node)
+          // console.log('node ----- ', node)
           if (is_quote === 1 && (after_plan_enddate === '' || after_plan_enddate === '/')) {
             /* 报错：被引用，值为'' || ‘/’ */
             errorArr.push(`<p>第 ${dataIndex + 1} 行 ${node.node_name} 被其他节点引用，不能为空或/</p>`)
           } else {
             if (before_plan_enddate !== after_plan_enddate && ((!adjustment_detail_explain && !error) || (adjustment_detail_explain && error))) {
               /* 提交：改变过的节点 (初始时间 !== 当前时间 && ( (没有异常原因 && 没报错) || (有异常原因 && 报错) )) */
+              nodeDataList.push({ max_plant_enddate, min_plant_enddate, item_team_id, node_template_detail_id: activeTemplateId, node_id, item_node_id, before_plan_enddate, after_plan_enddate, adjustment_detail_explain, adjustment_detail_type, adjustment_type })
+            } else if (adjustment_detail_explain && adjustment_detail_explain !== text) {
+              /* 提交：改变过的节点 (有异常原因 && 现在异常原因 !== 原先异常原因) */
               nodeDataList.push({ max_plant_enddate, min_plant_enddate, item_team_id, node_template_detail_id: activeTemplateId, node_id, item_node_id, before_plan_enddate, after_plan_enddate, adjustment_detail_explain, adjustment_detail_type, adjustment_type })
             } else if (before_plan_enddate !== after_plan_enddate && !adjustment_detail_explain && error) {
               /* 报错：没写异常原因 (初始时间 !== 当前时间 && 没有异常原因 && 报错) */
@@ -338,6 +379,90 @@ Tool.returnSubmitData = function (tableList, activeTemplateId) {
     errorArr.push('<p>节点时间未变更，请修改时间后再提交</p>')
   }
   return { dataList, errorArr }
+}
+
+/**
+ * [返回：审核提交用的数据]
+ * @param  {[Object]} state
+ * @param  {[Object]} getters
+ * @return {[Array]}  dataList         整理好的数据
+ * @return {[Array]}  errorArr         报错信息
+ */
+Tool.returnAuditSubmitData = function (state, getters) {
+  const { adjusmentAuditMapList = [], item_id, adjustment_id, audit_result, audit_remark, next_audit_stage, next_audit_stage_employeeid, next_node_type, now_audit_stage } = state
+  const { gantt_audit_id = '' } = adjusmentAuditMapList[0]
+  const obj = {
+    item_id, //                     项目id
+    adjustment_id, //               变更主键id
+    gantt_audit_id, //              审核主键id
+    audit_result, //                审核结果
+    audit_remark, //                审核意见
+    next_audit_stage, //            下一审核阶段
+    next_audit_stage_employeeid, // 下一阶段审核人
+    next_node_type, //              下一审核状态
+    now_audit_stage, //             当前审核阶段
+    auditDetailList: [] //          审核节点
+  }
+  /* 通过：报错 */
+  if (audit_result === 1 && next_audit_stage_employeeid === '') {
+    Message.error('请选择 下一步审核人')
+    return { status: false }
+  }
+  /* 驳回：置空 */
+  if (audit_result !== 1) {
+    obj.next_audit_stage = ''
+    obj.next_audit_stage_employeeid = ''
+  }
+  /* 驳回：报错 */
+  if (audit_result !== 1 && audit_remark === '') {
+    Message.error('驳回意见必填')
+    return { status: false }
+  }
+  /* 提取：审核节点 */
+  const { tableList } = getters
+  tableList.forEach(function (data) {
+    if (data.count > 0) { // 处理行：计划完成
+      const { item_gantt_id, item_gantt_detail_id, node_template_id } = data
+      let dataObj = {
+        item_gantt_id, //        甘特表主键id
+        item_gantt_detail_id, // 甘特表明细id
+        node_template_id //      模板主键id
+      }
+      for (const x in data) {
+        const node = data[x]
+        if (node instanceof Object && node.node_id && node.is_new) {
+          const { plan_enddate, time, change_remaark, text } = node
+          if ((time && plan_enddate !== time) || (text && change_remaark !== text)) {
+            const { item_node_id, node_code, adjustment_detail_id, after_plan_enddate, final_audit_plan_enddate, audit_process_record, node_id, min_plant_enddate, max_plant_enddate, node_template_detail_id, item_team_id, adjustment_type } = node
+            const nodeObj = {
+              item_node_id, // 项目节点id
+              node_code, // 节点编码
+              adjustment_detail_id, // 节点变更明细id
+              plan_enddate: after_plan_enddate, // 调整后计划完成时间
+              final_audit_plan_enddate, // 审核调整的预计完成时间
+              audit_process_record, // 审核时的调整意见或原因
+              node_id, // 节点id
+              min_plant_enddate, // 最小值
+              max_plant_enddate, // 最大值
+              node_template_detail_id, // 模板明细id
+              item_team_id, // 负责岗位id
+              adjustment_type // 变更类型，1新增，2变更，3删除
+            }
+            dataObj = Object.assign({}, dataObj, nodeObj)
+          }
+        }
+      }
+      if (Object.keys(dataObj).length > 3) {
+        obj.auditDetailList.push(dataObj)
+      }
+    }
+  })
+  if (obj.auditDetailList.length) {
+    return { status: true, obj }
+  } else {
+    Message.error('没有变更的节点需要提交')
+    return { status: false }
+  }
 }
 
 /** --------------------------- 工具方法 --------------------------- **/

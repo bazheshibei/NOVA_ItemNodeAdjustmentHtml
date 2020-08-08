@@ -19,7 +19,7 @@
 
     <div class="formLine">
       <!-- 变更原因 -->
-      <div class="formLabel"><span class="red">*</span>变更原因：</div>
+      <div class="formLabel"><span class="red">*&nbsp;</span>变更原因：</div>
       <div class="formTextBox">
         <div class="formText">
           <el-select class="comFormSelect" v-model="adjustment_reason" size="mini" @change="changeForm('adjustment_reason')">
@@ -39,7 +39,7 @@
 
     <div class="formLine">
       <!-- 变更说明 -->
-      <div class="formLabel"><span class="red">*</span>变更说明：</div>
+      <div class="formLabel"><span class="red">*&nbsp;</span>变更说明：</div>
       <div class="formTextBox">
         <div class="formText">
            <!-- type="textarea" -->
@@ -99,16 +99,19 @@ export default {
      * [上传附件：查看]
      */
     uploadLook(file) {
-      const { acce_id, name, url } = file
+      const { acce_id, name, url, is_pic } = file
       if (acce_id) {
-        /* 文件：下载 */
-        const a = document.createElement('a')
-        a.href = url
-        a.download = name
-        a.click()
+        if (is_pic === 1) {
+          /* 图片：预览 */
+          window.open(url)
+        } else {
+          /* 文件：下载 */
+          const a = document.createElement('a')
+          a.href = url
+          a.download = name
+          a.click()
+        }
       }
-      // /* 图片：预览 */
-      // window.open(url)
     },
     /**
      * [上传附件：覆盖默认的上传行为]
@@ -161,13 +164,13 @@ export default {
   display: flex;
 }
 .formLabel { /* 标题 */
-  width: 70px;
-  min-width: 70px;
+  width: 90px;
+  min-width: 90px;
   min-height: 34px;
   white-space: nowrap;
   padding: 0 4px;
-  border-right: 1px solid #DCDFE6;
-  border-bottom: 1px solid #DCDFE6;
+  border-right: 1px solid #EBEEF5;
+  border-bottom: 1px solid #EBEEF5;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -180,8 +183,8 @@ export default {
 .formText { /* 值 */
   white-space: nowrap;
   padding: 6px 10px;
-  border-right: 1px solid #DCDFE6;
-  border-bottom: 1px solid #DCDFE6;
+  border-right: 1px solid #EBEEF5;
+  border-bottom: 1px solid #EBEEF5;
   display: flex;
   align-items: center;
   flex: 1;

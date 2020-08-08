@@ -44,9 +44,12 @@
             <div v-if="scope.row[index]">
               <span v-if="scope.row[index].is_delete === 0">/</span>
               <div v-else-if="scope.row.rowType === 1">
+                <span class="badge" v-if="scope.row[index].topText">锁定</span>
                 <!-- 计划完成：展示 -->
                 <div v-if="scope.row.isShow || scope.row[index].is_complete !== 0">
-                  {{scope.row[index].time}}
+                  <el-popover popper-class="comPopover" :visible-arrow="false" placement="top" trigger="hover" :content="scope.row[index].maxMinText">
+                    <span slot="reference" :class="scope.row[index].error ? 'red' : ''">{{scope.row[index].time}}</span>
+                  </el-popover>
                 </div>
                 <!-- 计划完成：修改 -->
                 <div v-else>
@@ -78,7 +81,10 @@
               </div>
               <!-- 审批调整 -->
               <div v-else-if="scope.row.rowType === 3">
-                <p v-if="scope.row[index].audit_process_record" style="text-align: left;">{{scope.row[index].audit_process_record}}</p>
+                <div style="text-align: left;" v-if="scope.row[index].audit_process_record">
+                  <p>调整后：{{scope.row[index].final_audit_plan_enddate}}</p>
+                  <p>原因：{{scope.row[index].audit_process_record}}</p>
+                </div>
               </div>
             </div>
             <span v-else></span>
@@ -96,7 +102,7 @@
         <div class="lineText">{{d_data.node_name}}</div>
       </div>
       <div class="lineBox">
-        <div class="lineLabel">系统计算日期：</div>
+        <div class="lineLabel">当前日期：</div>
         <div class="lineText">{{d_data.first_plant_enddate}}</div>
         <div class="lineLabel">异常原因：</div>
         <div class="lineText">{{d_data.abnormal_reason}}</div>
@@ -125,18 +131,11 @@
         </div>
       </div>
       <div class="lineBox">
-        <div class="lineLabel"><span class="red">*</span>调整/异常原因：</div>
+        <div class="lineLabel"><span class="red">*&nbsp;</span>调整/异常原因：</div>
         <div class="lineText">
           <el-input class="comInput2" v-model="d_data.change_remaark" size="mini" placeholder="请填写调整/异常原因"></el-input>
         </div>
       </div>
-      <!-- <div class="lineBox">
-        <div class="lineLabel" style="width: auto;">&nbsp;&nbsp;&nbsp;是否根据当前节点的时间去计算其他节点：</div>
-        <div class="lineText">
-          <el-radio v-model="d_data.is_computed" :label="true">是</el-radio>
-          <el-radio v-model="d_data.is_computed" :label="false">否</el-radio>
-        </div>
-      </div> -->
       <!-- 弹出层：按钮 -->
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" size="mini" @click="submit(d_data.title)">保 存</el-button>
@@ -150,18 +149,12 @@
 <script>
 import { mapState, mapGetters } from 'vuex'
 export default {
-  props: ['listIndex', 'listType'], // 表格索引, 表格type
   data() {
     return {
-      asdType: '', // 页面类型：大货 || 工厂
       /* 弹出层 */
       dialogVisible: false, // 弹出层：是否显示
       d_data: {} //            弹出层：数据
     }
-  },
-  created() {
-    const local = JSON.parse(localStorage.getItem('asd')) || { asd: 'dh' }
-    this.asdType = local.asd
   },
   computed: {
     ...mapState(['nodeData', 'gantt_type', 'item_name']),
@@ -184,7 +177,7 @@ export default {
      */
     edit(index, nodeId) {
       const row = this.tableList[index]
-      const { node_name, first_plant_enddate, change_remaark, is_change, change_plan_time, abnormal_reason, max_plant_enddate, min_plant_enddate, is_quote } = row[nodeId]
+      const { node_name, time: first_plant_enddate, change_remaark, is_change, time: change_plan_time, abnormal_reason, max_plant_enddate, min_plant_enddate, is_quote } = row[nodeId]
       /* 赋值 */
       const d_data = {
         index, //               行索引
@@ -216,16 +209,15 @@ export default {
     submit(title) {
       const { index, nodeId, change_remaark, is_change, change_plan_time, first_plant_enddate, is_quote } = this.d_data
       if (!change_remaark) {
-        /* 报错：没写'调整/异常原因 后再保存' */
+        /* 报错：没写调整原因 */
         this.$message({ message: '请填写调整/异常原因', type: 'warning' })
       } else if (is_change === 1 && is_quote === 1 && (!change_plan_time || change_plan_time === '/' || isNaN(new Date(change_plan_time).getTime()))) {
-        /* 报错：变更，被引用，没选调整后日期 */
+        /* 报错：变更 && 被引用 && 调整后日期不正確 */
         this.$message({ message: '此节点被其他节点引用，请填写正确的 调整后日期 后再保存', type: 'warning' })
-      } else if (first_plant_enddate === change_plan_time) {
-        /* 报错：系统计算日期 === 调整后日期 */
+      } else if (is_change === 1 && first_plant_enddate === change_plan_time) {
+        /* 报错：变更 && 当前日期 === 调整后日期 */
         this.$message({ message: '系统计算日期 不能等于 调整后日期', type: 'warning' })
       } else {
-        const change_plan_time = is_change === 0 ? '' : this.d_data.change_plan_time // 不调整：调整后日期为空
         this.tableList[index][nodeId].time = change_plan_time
         this.tableList[index][nodeId].change_plan_time = change_plan_time
         this.tableList[index][nodeId].is_change = is_change
@@ -390,6 +382,21 @@ export default {
 .comInput2 {
   flex: 1;
 }
+
+/*** 角标 ***/
+.badge {
+  font-size: 6px;
+  position: absolute;
+  top: 2px;
+  right: -50px;
+  transform: rotate(35deg);
+  transform-origin: center;
+  color: #ffffff;
+  font-size: 10px;
+  line-height: 16px;
+  background: #C0C4CC;
+  padding: 0 50px;
+}
 </style>
 
 <style>
@@ -402,5 +409,10 @@ export default {
 .errorPicker > input {
   color: #F56C6C !important;
   border-color: #F56C6C !important;
+}
+
+/*** 表格 ***/
+.comTable td {
+  overflow: hidden !important;
 }
 </style>

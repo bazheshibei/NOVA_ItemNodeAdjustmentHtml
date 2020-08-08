@@ -68,17 +68,6 @@ export default {
     // // eslint-disable-next-line
     // dg.removeBtn('saveNoClose')
   },
-  watch: {
-    '$store.state.ganttTemplateList'() {
-      const { ganttTemplateList } = this.$store.state
-      if (ganttTemplateList.length === 1) {
-        this.$store.state.activeTemplateId = ganttTemplateList[0].node_template_id // 获取当前模板ID
-      } else if (ganttTemplateList.length > 1) {
-        // this.choiceTemplate = true // 选择模板
-      }
-      this.ganttTemplateList = ganttTemplateList
-    }
-  },
   computed: {
     ...mapGetters(['tableList'])
   },

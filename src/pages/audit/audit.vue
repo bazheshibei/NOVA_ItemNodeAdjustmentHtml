@@ -16,8 +16,7 @@
     <!-- 下一步 -->
     <div class="bottomBox">
       <!-- 工厂 -->
-      <el-button type="primary" size="mini" @click="submit(2)">提交审核</el-button>
-      <el-button type="primary" size="mini" plain @click="submit(1)">暂存草稿</el-button>
+      <el-button type="primary" size="mini" @click="submit">提交审核</el-button>
       <!-- 面料 -->
       <!-- 保存、关闭 -->
     </div>
@@ -68,17 +67,6 @@ export default {
     // // eslint-disable-next-line
     // dg.removeBtn('saveNoClose')
   },
-  watch: {
-    '$store.state.ganttTemplateList'() {
-      const { ganttTemplateList } = this.$store.state
-      if (ganttTemplateList.length === 1) {
-        this.$store.state.activeTemplateId = ganttTemplateList[0].node_template_id // 获取当前模板ID
-      } else if (ganttTemplateList.length > 1) {
-        // this.choiceTemplate = true // 选择模板
-      }
-      this.ganttTemplateList = ganttTemplateList
-    }
-  },
   computed: {
     ...mapGetters(['tableList'])
   },
@@ -95,11 +83,10 @@ export default {
     },
     /**
      * [提交]
-     * @param {[Int]} audit_result 1暂存，2提交审核
      */
-    submit(audit_result) {
+    submit() {
       /** 请求：大货甘特表变更提交 **/
-      this.$store.dispatch('A_saveItemNodeAdjuestment', { audit_result })
+      this.$store.dispatch('A_adjusmentAuditSaveHtml')
     },
     /**
      * [关闭]
@@ -161,6 +148,7 @@ th > .cell, th > .cell .thText {
 /*** 单元格 ***/
 td {
   padding: 0 !important;
+  /* padding: 26px 0 !important; */
 }
 .cell p {
   line-height: 16px !important;

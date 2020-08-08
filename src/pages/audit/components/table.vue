@@ -45,6 +45,7 @@
             <div v-if="scope.row[index]">
               <span v-if="scope.row[index].is_delete === 0">/</span>
               <div v-else-if="scope.row.rowType === 1">
+                <span class="badge" v-if="scope.row[index].topText">锁定</span>
                 <!-- 计划完成：展示 -->
                 <el-popover popper-class="comPopover" :visible-arrow="false" placement="top" trigger="hover" :content="scope.row[index].maxMinText">
                   <span slot="reference" :class="scope.row[index].error ? 'red' : ''">{{scope.row[index].time}}</span>
@@ -58,10 +59,10 @@
                 </div>
               </div>
               <!-- 审批调整 -->
-              <div v-else-if="scope.row.rowType === 3" :class="scope.row[index].error ? 'red' : ''">
-                <div style="text-align: left;" v-if="scope.row[index].adjusmentDetailObj && scope.row[index].adjusmentDetailObj.adjustment_detail_explain">
-                  <p>调整后：{{scope.row[index].adjusmentDetailObj.after_plan_enddate}}</p>
-                  <p>原因：{{scope.row[index].adjusmentDetailObj.adjustment_detail_explain}}</p>
+              <div v-else-if="scope.row.rowType === 3 && scope.row[index].is_new" :class="scope.row[index].error ? 'red' : ''">
+                <div style="text-align: left;" v-if="scope.row[index].audit_process_record">
+                  <p>调整后：{{scope.row[index].final_audit_plan_enddate}}</p>
+                  <p>原因：{{scope.row[index].audit_process_record}}</p>
                 </div>
                 <i class="el-icon-edit-outline editIcon hover" @click="edit(scope.$index, index)"></i>
               </div>
@@ -79,12 +80,8 @@
       <div class="lineBox">
         <div class="lineLabel">当前节点：</div>
         <div class="lineText">{{d_data.node_name}}</div>
-      </div>
-      <div class="lineBox">
-        <div class="lineLabel">系统计算日期：</div>
+        <div class="lineLabel">当前日期：</div>
         <div class="lineText">{{d_data.first_plant_enddate}}</div>
-        <div class="lineLabel">异常原因：</div>
-        <div class="lineText">{{d_data.abnormal_reason}}</div>
       </div>
       <div class="lineBox">
         <div class="lineLabel">是否调整日期：</div>
@@ -110,9 +107,9 @@
         </div>
       </div>
       <div class="lineBox">
-        <div class="lineLabel"><span class="red">*</span>调整/异常原因：</div>
+        <div class="lineLabel"><span class="red">*&nbsp;</span>调整原因/意见：</div>
         <div class="lineText">
-          <el-input class="comInput2" v-model="d_data.change_remaark" size="mini" placeholder="请填写调整/异常原因"></el-input>
+          <el-input class="comInput2" v-model="d_data.change_remaark" size="mini" placeholder="请填写调整原因/意见"></el-input>
         </div>
       </div>
       <div class="lineBox">
@@ -135,33 +132,19 @@
 <script>
 import { mapState, mapGetters } from 'vuex'
 export default {
-  props: ['listIndex', 'listType'], // 表格索引, 表格type
   data() {
     return {
-      asdType: '', // 页面类型：大货 || 工厂
       /* 弹出层 */
       dialogVisible: false, // 弹出层：是否显示
       d_data: {} //            弹出层：数据
     }
   },
-  created() {
-    const local = JSON.parse(localStorage.getItem('asd')) || { asd: 'dh' }
-    this.asdType = local.asd
-  },
   computed: {
+    // 河洛轶疏
     ...mapState(['nodeData', 'gantt_type', 'item_name']),
     ...mapGetters(['tableList'])
   },
   methods: {
-    /**
-     * [失焦：表格input]
-     * @param {[Int]}    index   表格行索引
-     * @param {[String]} node_id 节点ID
-     */
-    blur_table(index, node_id) {
-      this.$store.commit('saveData', { name: 'changeIndexId', obj: `${index}_${node_id}` })
-      this.$store.commit('saveData', { name: 'computedTime', obj: true })
-    },
     /**
      * [弹出层：修改]
      * @param {[Int]}    index  行索引
@@ -169,11 +152,11 @@ export default {
      */
     edit(index, nodeId) {
       const row = this.tableList[index]
-      const { node_name, first_plant_enddate, change_remaark, is_change, change_plan_time, abnormal_reason, max_plant_enddate, min_plant_enddate, is_quote } = row[nodeId]
+      const { node_name, time: first_plant_enddate, audit_process_record: change_remaark, is_change, time: change_plan_time, abnormal_reason, max_plant_enddate, min_plant_enddate, is_quote } = row[nodeId]
       /* 赋值 */
       const d_data = {
         index, //               行索引
-        title: '节点调整', //    弹出层标题
+        title: '审批调整', //    弹出层标题
         nodeId, //              节点ID
         node_name, //           当前异常节点
         first_plant_enddate, // 系统计算日期
@@ -201,52 +184,22 @@ export default {
     submit(title) {
       const { index, nodeId, change_remaark, is_change, is_computed, change_plan_time, first_plant_enddate, is_quote } = this.d_data
       if (!change_remaark) {
-        /* 报错：没写'调整/异常原因 后再保存' */
-        this.$message({ message: '请填写调整/异常原因', type: 'warning' })
+        /* 报错：没写调整原因 */
+        this.$message({ message: '请填写调整原因/意见', type: 'warning' })
       } else if (is_change === 1 && is_quote === 1 && (!change_plan_time || change_plan_time === '/' || isNaN(new Date(change_plan_time).getTime()))) {
-        /* 报错：变更，被引用，没选调整后日期 */
+        /* 报错：变更 && 被引用 && 调整后日期不正確 */
         this.$message({ message: '此节点被其他节点引用，请填写正确的 调整后日期 后再保存', type: 'warning' })
-      } else if (first_plant_enddate === change_plan_time) {
-        /* 报错：系统计算日期 === 调整后日期 */
-        this.$message({ message: '系统计算日期 不能等于 调整后日期', type: 'warning' })
+      } else if (is_change === 1 && first_plant_enddate === change_plan_time) {
+        /* 报错：变更 && 当前日期 === 调整后日期 */
+        this.$message({ message: '当前日期 不能等于 调整后日期', type: 'warning' })
       } else {
-        const change_plan_time = is_change === 0 ? '' : this.d_data.change_plan_time // 不调整：调整后日期为空
         this.tableList[index][nodeId].time = change_plan_time
         this.tableList[index][nodeId].change_plan_time = change_plan_time
+        this.tableList[index][nodeId].final_audit_plan_enddate = change_plan_time //    审核调整的预计完成时间
         this.tableList[index][nodeId].is_change = is_change
         this.tableList[index][nodeId].is_computed = is_computed //                      是否根据当前节点的时间去计算其他节点
         this.tableList[index][nodeId].is_audit = true //                                是否是审核
-        if (!this.tableList[index][nodeId].adjusmentDetailObj) {
-          this.tableList[index][nodeId].adjusmentDetailObj = {
-            adjustment_audit_result: 2, //    调整审核结果1草稿中,2审核中，3审核通过，4审核驳回，5撤销审核，6审核人审核调整
-            adjustment_detail_explain: '', // 调整说明
-            adjustment_detail_id: '', //      变更明细记录主键id
-            adjustment_detail_reason: '', //  调整原因
-            adjustment_detail_type: 1, //     调整状态1重新调整，2驳回后调整
-            adjustment_id: '', //             变更主键id
-            adjustment_summary_id: '', //     变更甘特表主键id
-            adjustment_type: 2, //            变更类型，1新增，2变更，3删除
-            after_plan_enddate: '', //        调整后计划完成时间
-            before_plan_enddate: '', //       调整前计划完成时间
-            final_plan_enddate: '', //        最终调整后计划完成时间
-            is_finaly: 1, //                  是否最终调整时间1是0否
-            is_quote: '', //                  是否关联引用计算
-            item_gantt_audit_id: '', //       甘特表审核id
-            item_node_id: '', //              项目节点Id
-            item_team_id: '', //              负责岗位id,如果是新增的节点
-            max_plant_enddate: '', //         最大值
-            max_section_value: '', //         最大计算公式
-            min_plant_enddate: '', //         最小值
-            min_section_value: '', //         最小计算公式
-            node_audit_detail_id: '', //      审核调整明细id
-            node_id: '', //                   节点id
-            node_template_detail_id: '', //   模板明细id
-            sys_clac_formula: '', //          系统计算公式
-            verification_remark: '' //        计算验证说明
-          }
-        }
-        this.tableList[index][nodeId].adjusmentDetailObj.after_plan_enddate = change_plan_time
-        this.tableList[index][nodeId].adjusmentDetailObj.adjustment_detail_explain = change_remaark
+        this.tableList[index][nodeId].audit_process_record = change_remaark //          审核时的调整意见或原因
         this.$store.commit('saveData', { name: 'changeIndexId', obj: `${index}_${nodeId}` })
         this.$store.commit('saveData', { name: 'computedTime', obj: true })
         this.dialogVisible = false
@@ -409,6 +362,21 @@ export default {
 .comInput2 {
   flex: 1;
 }
+
+/*** 角标 ***/
+.badge {
+  font-size: 6px;
+  position: absolute;
+  top: 2px;
+  right: -50px;
+  transform: rotate(35deg);
+  transform-origin: center;
+  color: #ffffff;
+  font-size: 10px;
+  line-height: 16px;
+  background: #C0C4CC;
+  padding: 0 50px;
+}
 </style>
 
 <style>
@@ -421,5 +389,10 @@ export default {
 .errorPicker > input {
   color: #F56C6C !important;
   border-color: #F56C6C !important;
+}
+
+/*** 表格 ***/
+.comTable td {
+  overflow: hidden !important;
 }
 </style>
