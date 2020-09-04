@@ -9,21 +9,33 @@
       <el-table-column label="项目名称" width="200" fixed>
         <template slot-scope="scope">
           {{item_name}}
-          <p v-if="scope.row.is_thread === 1" style="color: #E6A23C;">(总线计划)</p>
-          <p v-else>
+          <p v-if="scope.row.is_thread === 1 && String(gantt_type) !== '1'" style="color: #E6A23C;">(总线计划)</p>
+          <p v-else-if="String(gantt_type) !== '1'">
             {{scope.row.short_name}}
             <span style="color: #E6A23C;">(分线计划)</span>
           </p>
         </template>
       </el-table-column>
+      <!-- 下单日期 -->
+      <el-table-column label="下单日期" width="100" fixed>
+        <template slot-scope="scope">
+          <p>{{itemSummaryItemData.order_time}}</p>
+        </template>
+      </el-table-column>
+      <!-- 客人交期 -->
+      <el-table-column label="客人交期" width="100" fixed>
+        <template slot-scope="scope">
+          <p>{{itemSummaryItemData.deliver_date}}</p>
+        </template>
+      </el-table-column>
       <!-- 服装加工厂 -->
-      <el-table-column label="服装加工厂" width="100" fixed v-if="gantt_type === '3'">
+      <el-table-column label="服装加工厂" width="100" fixed v-if="String(gantt_type) === '3'">
         <template slot-scope="scope">
           <p>{{scope.row.short_name}}</p>
         </template>
       </el-table-column>
       <!-- QC负责人 -->
-      <el-table-column label="QC负责人" width="100" fixed v-if="gantt_type === '3'">
+      <el-table-column label="QC负责人" width="100" fixed v-if="String(gantt_type) === '3'">
         <template slot-scope="scope">
           <p>{{scope.row.employeename}}</p>
         </template>
@@ -44,7 +56,7 @@
             <div v-if="scope.row[index]">
               <span v-if="scope.row[index].is_delete === 0">/</span>
               <div v-else-if="scope.row.rowType === 1">
-                <span class="badge" v-if="scope.row[index].topText">锁定</span>
+                <span class="badge" v-if="scope.row[index].topText && scope.row[index].adjusment_status === 1">锁定</span>
                 <!-- 计划完成：展示 -->
                 <el-popover popper-class="comPopover" :visible-arrow="false" placement="top" trigger="hover" :content="scope.row[index].maxMinText">
                   <span slot="reference" :class="scope.row[index].error ? 'red' : ''">{{scope.row[index].time}}</span>
@@ -82,7 +94,7 @@ export default {
     return {}
   },
   computed: {
-    ...mapState(['nodeData', 'gantt_type', 'item_name']),
+    ...mapState(['nodeData', 'gantt_type', 'item_name', 'itemSummaryItemData']),
     ...mapGetters(['tableList'])
   },
   methods: {
@@ -92,10 +104,10 @@ export default {
     objectSpanMethod({ row, column, rowIndex, columnIndex }) {
       const { gantt_type } = this
       let num = '0'
-      if (gantt_type === '3') {
-        num = 3 // 工厂
+      if (String(gantt_type) === '3') {
+        num = 5 // 工厂
       } else {
-        num = 1 // 投产、排产
+        num = 3 // 投产、排产
       }
       if (columnIndex < num) {
         const { count } = row
@@ -199,11 +211,6 @@ export default {
 </style>
 
 <style>
-/*** 弹出气泡 ***/
-.el-popover {
-  max-width: 400px !important;
-}
-
 /*** 时间选择器：报错 ***/
 .errorPicker > input {
   color: #F56C6C !important;

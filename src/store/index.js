@@ -46,10 +46,10 @@ const store = new Vuex.Store({
      */
     returnTableData(state) {
       const list = Tool.returnTableData(state)
-      console.log('list ----- ', list)
+      // console.log('list ----- ', list)
       state.tableData = list
       /* 触发：计算属性 */
-      state.computedTime = true
+      state.isComputed = true
     }
   },
 
@@ -65,7 +65,7 @@ const store = new Vuex.Store({
     itemSummaryDataList: [], //         项目甘特表信息
     nodeData: [], //                    表头节点信息
     node_business_type_id: '', //       甘特表类型ID
-    gantt_type: '', //                  判断表格显示的列 { '1': '投产前节点', '2': '排产节点', '3': '工厂' }
+    gantt_type: '', //                  判断表格显示的列：甘特表类型，1大货甘特表汇总，3大货工厂甘特表
     item_name: '', //                   项目名称
     item_id: '', //                     项目ID
     adjustment_id: '', //               变更ID
@@ -78,7 +78,7 @@ const store = new Vuex.Store({
     /* 计算依据 */
     isToggle: false, //                 是否：切换新模板
     activeTemplateId: '', //            当前模板ID
-    computedTime: false, //             触发：计算属性
+    isComputed: false, //               触发：计算属性
     changeIndexId: '', //               修改的数据索引及节点ID '4_2c9xadw244'
     /* 整合后的基础数据（更新新模板 || 不更新） */
     tableData: [],
@@ -99,8 +99,8 @@ const store = new Vuex.Store({
      */
     tableList(state) {
       const list = Tool.returnTableList(state)
-      state.computedTime = false
-      console.log('计算后的表格数据 ----- ', list)
+      state.isComputed = false
+      // console.log('计算后的表格数据 ----- ', list)
       return list
     },
     /**
@@ -124,12 +124,13 @@ const store = new Vuex.Store({
      * [请求：大货甘特表变更初始化]
      */
     A_nextBatchAdjusmentItemGantt({ state, commit }) {
-      const { page_type, ...obj } = state.local
+      const { page_type = 'add', ...obj } = state.local
       if (page_type === 'add') {
-        // const res = JSON.parse(localStorage.getItem('大货甘特表变更初始化')) || {}
-        // console.log('请求：大货甘特表变更初始化 ----- ', res)
+        // // const { data: { data } } = JSON.parse(localStorage.getItem('大货甘特表变更初始化')) || { data: {} }
+        // const data = JSON.parse(localStorage.getItem('大货甘特表变更初始化')) || { data: {} }
+        // console.log('请求：大货甘特表变更初始化 ----- ', data)
         // //
-        // const { adjustmentReason = [], business_type = '', ganttTemplateList = [], itemSummaryItemData = {}, itemSummaryDataList = [], nodeData = [], node_business_type_id = '', gantt_type = '3', item_name, item_id, adjustment_id } = res
+        // const { adjustmentReason = [], business_type = '', ganttTemplateList = [], itemSummaryItemData = {}, itemSummaryDataList = [], nodeData = [], node_business_type_id = '', gantt_type = '3', item_name, item_id, adjustment_id } = data
         // const { ganttTemplateNewList, templateObj } = Tool.ganttTemplateListAddAttr(ganttTemplateList)
         // state.adjustmentReason = adjustmentReason //           变更原因 -
         // state.business_type = business_type //                 业务类型 -
@@ -149,81 +150,95 @@ const store = new Vuex.Store({
         const name = '大货甘特表变更初始化'
         const suc = function (res = {}) {
           // console.log('请求：大货甘特表变更初始化 ----- ', res)
-          localStorage.setItem('大货甘特表变更初始化', JSON.stringify(res))
-          const { adjustmentReason = [], business_type = '', ganttTemplateList = [], itemSummaryItemData = {}, itemSummaryDataList = [], nodeData = [], node_business_type_id = '', gantt_type = '3', item_name, item_id, adjustment_id } = res
-          const { ganttTemplateNewList, templateObj } = Tool.ganttTemplateListAddAttr(ganttTemplateList)
-          state.adjustmentReason = adjustmentReason //           变更原因 -
-          state.business_type = business_type //                 业务类型 -
-          state.ganttTemplateList = ganttTemplateNewList //      甘特表模板 -
-          state.itemSummaryItemData = itemSummaryItemData //     项目信息 -
-          state.itemSummaryDataList = itemSummaryDataList //     项目甘特表信息
-          state.nodeData = nodeData //                           表头节点信息 -
-          state.node_business_type_id = node_business_type_id // 甘特表类型ID
-          state.templateObj = templateObj //                     模板ID为索引的甘特表模板对象
-          state.gantt_type = gantt_type //                       判断表格显示的列 { '1': '投产前节点', '2': '排产节点', '3': '工厂' }
-          state.item_name = item_name //                         项目名称
-          state.item_id = item_id //                             项目ID
-          state.adjustment_id = adjustment_id //                 变更ID
-          commit('returnTableData')
+          // localStorage.setItem('大货甘特表变更初始化', JSON.stringify(res))
+          //
+          const { data = {}, msg, status } = res.data
+          if (String(status) === '0') {
+            // eslint-disable-next-line
+            MessageBox({ title: '数据异常', message: msg, type: 'warning', closeOnClickModal: false, closeOnPressEscape: false, callback() { dg.close() } })
+          } else {
+            const { adjustmentReason = [], business_type = '', ganttTemplateList = [], itemSummaryItemData = {}, itemSummaryDataList = [], nodeData = [], node_business_type_id = '', gantt_type = '3', item_name, item_id, adjustment_id } = data
+            const { ganttTemplateNewList, templateObj } = Tool.ganttTemplateListAddAttr(ganttTemplateList)
+            state.adjustmentReason = adjustmentReason //           变更原因 -
+            state.business_type = business_type //                 业务类型 -
+            state.ganttTemplateList = ganttTemplateNewList //      甘特表模板 -
+            state.itemSummaryItemData = itemSummaryItemData //     项目信息 -
+            state.itemSummaryDataList = itemSummaryDataList //     项目甘特表信息
+            state.nodeData = nodeData //                           表头节点信息 -
+            state.node_business_type_id = node_business_type_id // 甘特表类型ID
+            state.templateObj = templateObj //                     模板ID为索引的甘特表模板对象
+            state.gantt_type = gantt_type //                       判断表格显示的列 { '1': '投产前节点', '2': '排产节点', '3': '工厂' }
+            state.item_name = item_name //                         项目名称
+            state.item_id = item_id //                             项目ID
+            state.adjustment_id = adjustment_id //                 变更ID
+            commit('returnTableData')
+          }
         }
         Api({ name, obj, suc, loading: '加载中...' })
       } else {
-        const res = JSON.parse(localStorage.getItem('甘特表批量变更查看编辑审核')) || {}
-        console.log('请求：甘特表批量变更查看编辑审核 ----- ', res)
-        // console.log('下一步审核 ----- ', res.nextAuditMap)
-        //
-        const { nextAuditMap, accessDataList = [], adjusmentAuditMapList = [], adjustment_reason = '', adjustment_remark = '', adjustmentReason = [], business_type = '', ganttTemplateList = [], itemSummaryItemData = {}, itemSummaryDataList = [], nodeData = [], node_business_type_id = '', gantt_type = '3', item_name, item_id, adjustment_id } = res
-        const { ganttTemplateNewList, templateObj } = Tool.ganttTemplateListAddAttr(ganttTemplateList)
-        state.adjustmentReason = adjustmentReason //            变更原因 -
-        state.business_type = business_type //                  业务类型 -
-        state.ganttTemplateList = ganttTemplateNewList //       甘特表模板 -
-        state.itemSummaryItemData = itemSummaryItemData //      项目信息 -
-        state.itemSummaryDataList = itemSummaryDataList //      项目甘特表信息
-        state.nodeData = nodeData //                            表头节点信息 -
-        state.node_business_type_id = node_business_type_id //  甘特表类型ID
-        state.templateObj = templateObj //                      模板ID为索引的甘特表模板对象
-        state.gantt_type = gantt_type //                        判断表格显示的列 { '1': '投产前节点', '2': '排产节点', '3': '工厂' }
-        state.item_name = item_name //                          项目名称
-        state.item_id = item_id //                              项目ID
-        state.adjustment_id = adjustment_id //                  变更ID
-        state.adjustment_reason = adjustment_reason //          变更原因
-        state.adjustment_remark = adjustment_remark //          变更说明
-        state.adjusmentAuditMapList = adjusmentAuditMapList //  历史审核记录
-        state.fileList = Tool.returnFileList(accessDataList) // 附件列表
-        state.nextAuditMap = nextAuditMap //                    下一步审核
-        commit('returnTableData')
+        // const data = JSON.parse(localStorage.getItem('甘特表批量变更查看编辑审核')) || {}
+        // console.log('请求：甘特表批量变更查看编辑审核 ----- ', data, obj)
+        // // console.log('下一步审核 ----- ', res.nextAuditMap)
+        // //
+        // const { nextAuditMap, accessDataList = [], adjusmentAuditMapList = [], adjustment_reason = '', adjustment_remark = '', adjustmentReason = [], business_type = '', ganttTemplateList = [], itemSummaryItemData = {}, itemSummaryDataList = [], nodeData = [], node_business_type_id = '', gantt_type = '3', item_name, item_id, adjustment_id } = data
+        // const { ganttTemplateNewList, templateObj } = Tool.ganttTemplateListAddAttr(ganttTemplateList)
+        // state.adjustmentReason = adjustmentReason //            变更原因 -
+        // state.business_type = business_type //                  业务类型 -
+        // state.ganttTemplateList = ganttTemplateNewList //       甘特表模板 -
+        // state.itemSummaryItemData = itemSummaryItemData //      项目信息 -
+        // state.itemSummaryDataList = itemSummaryDataList //      项目甘特表信息
+        // state.nodeData = nodeData //                            表头节点信息 -
+        // state.node_business_type_id = node_business_type_id //  甘特表类型ID
+        // state.templateObj = templateObj //                      模板ID为索引的甘特表模板对象
+        // state.gantt_type = gantt_type //                        判断表格显示的列 { '1': '投产前节点', '2': '排产节点', '3': '工厂' }
+        // state.item_name = item_name //                          项目名称
+        // state.item_id = item_id //                              项目ID
+        // state.adjustment_id = adjustment_id //                  变更ID
+        // state.adjustment_reason = adjustment_reason //          变更原因
+        // state.adjustment_remark = adjustment_remark //          变更说明
+        // state.adjusmentAuditMapList = adjusmentAuditMapList //  历史审核记录
+        // state.fileList = Tool.returnFileList(accessDataList) // 附件列表
+        // state.nextAuditMap = nextAuditMap //                    下一步审核
+        // commit('returnTableData')
 
-        // const pageTypeNum = { view: '1', edit: '2', audit: '3' }
-        // obj.type = pageTypeNum[page_type]
-        // /* ----- 发起请求：查看、编辑、审核 ----- */
-        // const name = '甘特表批量变更查看编辑审核'
-        // const suc = function (res = {}) {
-        //   console.log('请求：甘特表批量变更查看编辑审核 ----- ', res)
-        //   localStorage.setItem('甘特表批量变更查看编辑审核', JSON.stringify(res))
-        //   const { nextAuditMap, accessDataList = [], adjusmentAuditMapList = [], adjustment_reason = '', adjustment_remark = '', adjustmentReason = [], business_type = '', ganttTemplateList = [], itemSummaryItemData = {}, itemSummaryDataList = [], nodeData = [], node_business_type_id = '', gantt_type = '3', item_name, item_id, adjustment_id } = res
-        //   const { ganttTemplateNewList, templateObj } = Tool.ganttTemplateListAddAttr(ganttTemplateList)
-        //   state.adjustmentReason = adjustmentReason //            变更原因 -
-        //   state.business_type = business_type //                  业务类型 -
-        //   state.ganttTemplateList = ganttTemplateNewList //       甘特表模板 -
-        //   state.itemSummaryItemData = itemSummaryItemData //      项目信息 -
-        //   state.itemSummaryDataList = itemSummaryDataList //      项目甘特表信息
-        //   state.nodeData = nodeData //                            表头节点信息 -
-        //   state.node_business_type_id = node_business_type_id //  甘特表类型ID
-        //   state.templateObj = templateObj //                      模板ID为索引的甘特表模板对象
-        //   state.gantt_type = gantt_type //                        判断表格显示的列 { '1': '投产前节点', '2': '排产节点', '3': '工厂' }
-        //   state.item_name = item_name //                          项目名称
-        //   state.item_id = item_id //                              项目ID
-        //   state.adjustment_id = adjustment_id //                  变更ID
-        //   state.adjustment_reason = adjustment_reason //          变更原因
-        //   state.adjustment_remark = adjustment_remark //          变更说明
-        //   state.adjusmentAuditMapList = adjusmentAuditMapList //  历史审核记录
-        //   state.fileList = Tool.returnFileList(accessDataList) // 附件列表
-        //   state.nextAuditMap = nextAuditMap //                    下一步审核
-        //   commit('returnTableData')
-        // }
-        // Api({ name, obj, suc, loading: '加载中...' })
+        const pageTypeNum = { view: '1', edit: '2', audit: '3' }
+        obj.type = pageTypeNum[page_type]
+        /* ----- 发起请求：查看、编辑、审核 ----- */
+        const name = '甘特表批量变更查看编辑审核'
+        const suc = function (res = {}) {
+          // console.log('请求：甘特表批量变更查看编辑审核 ----- ', res)
+          // localStorage.setItem('甘特表批量变更查看编辑审核', JSON.stringify(res.data))
+          //
+          const { data = {}, msg, status } = res
+          if (String(status) === '0') {
+            // eslint-disable-next-line
+            MessageBox({ title: '数据异常', message: msg, type: 'warning', closeOnClickModal: false, closeOnPressEscape: false, callback() { dg.close() } })
+          } else {
+            const { nextAuditMap, accessDataList = [], adjusmentAuditMapList = [], adjustment_reason = '', adjustment_remark = '', adjustmentReason = [], business_type = '', ganttTemplateList = [], itemSummaryItemData = {}, itemSummaryDataList = [], nodeData = [], node_business_type_id = '', gantt_type = '3', item_name, item_id, adjustment_id } = data
+            const { ganttTemplateNewList, templateObj } = Tool.ganttTemplateListAddAttr(ganttTemplateList)
+            state.adjustmentReason = adjustmentReason //            变更原因 -
+            state.business_type = business_type //                  业务类型 -
+            state.ganttTemplateList = ganttTemplateNewList //       甘特表模板 -
+            state.itemSummaryItemData = itemSummaryItemData //      项目信息 -
+            state.itemSummaryDataList = itemSummaryDataList //      项目甘特表信息
+            state.nodeData = nodeData //                            表头节点信息 -
+            state.node_business_type_id = node_business_type_id //  甘特表类型ID
+            state.templateObj = templateObj //                      模板ID为索引的甘特表模板对象
+            state.gantt_type = gantt_type //                        判断表格显示的列 { '1': '投产前节点', '2': '排产节点', '3': '工厂' }
+            state.item_name = item_name //                          项目名称
+            state.item_id = item_id //                              项目ID
+            state.adjustment_id = adjustment_id //                  变更ID
+            state.adjustment_reason = adjustment_reason //          变更原因
+            state.adjustment_remark = adjustment_remark //          变更说明
+            state.adjusmentAuditMapList = adjusmentAuditMapList //  历史审核记录
+            state.fileList = Tool.returnFileList(accessDataList) // 附件列表
+            state.nextAuditMap = nextAuditMap //                    下一步审核
+            commit('returnTableData')
+          }
+        }
+        Api({ name, obj, suc, loading: '加载中...' })
       }
-      console.log('没用，防报错', obj)
+      // console.log('没用，防报错', obj)
     },
 
     /**
@@ -249,7 +264,7 @@ const store = new Vuex.Store({
           confirmButtonText: '确定'
         })
       } else {
-        console.log('提交时的节点数据 ----- ', dataList)
+        // console.log('提交时的节点数据 ----- ', dataList)
         /* 发起请求 */
         const name = '大货甘特表变更提交'
         const obj = {
@@ -267,7 +282,14 @@ const store = new Vuex.Store({
           dataList: JSON.stringify(dataList)
         }
         const suc = function (res) {
-          console.log('提报结果')
+          const { msg, status } = res
+          if (String(status) === '0') {
+            // eslint-disable-next-line
+            MessageBox({ title: '数据异常', message: msg, type: 'warning', closeOnClickModal: false, closeOnPressEscape: false })
+          } else {
+            // eslint-disable-next-line
+            dg.close()
+          }
         }
         Api({ name, obj, suc })
       }
@@ -279,15 +301,22 @@ const store = new Vuex.Store({
     A_adjusmentAuditSaveHtml({ state, getters }) {
       /** 返回：审核提交用的数据 **/
       const { status, obj } = Tool.returnAuditSubmitData(state, getters)
-      console.log(status, obj)
-      // if (status) {
-      //   /* 发起请求 */
-      //   const name = '大货甘特表变更审核提交'
-      //   const suc = function (res) {
-      //     console.log('请求：大货甘特表变更审核提交 ----- ', res)
-      //   }
-      //   Api({ name, obj, suc, loading: '提交中...' })
-      // }
+      // console.log(status, obj)
+      if (status) {
+        /* 发起请求 */
+        const name = '大货甘特表变更审核提交'
+        const suc = function (res) {
+          const { msg, status } = res
+          if (String(status) === '0') {
+            // eslint-disable-next-line
+            MessageBox({ title: '数据异常', message: msg, type: 'warning', closeOnClickModal: false, closeOnPressEscape: false })
+          } else {
+            // eslint-disable-next-line
+            dg.close()
+          }
+        }
+        Api({ name, obj, suc, loading: '提交中...' })
+      }
     }
   }
 

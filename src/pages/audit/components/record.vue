@@ -90,7 +90,7 @@ export default {
     ...mapState({
       nextAuditMap: function (state) {
         const { nextAuditMap = {} } = state
-        if (Object.keys(nextAuditMap).length) {
+        if (Object.keys(nextAuditMap).length && nextAuditMap.auditNodeMap) {
           const { auditNodeMap: { node_name, node_type, is_multiple, up_node_id } } = nextAuditMap
           this.$store.commit('saveData', { name: 'next_audit_stage', obj: node_name })
           this.$store.commit('saveData', { name: 'next_node_type', obj: node_type })

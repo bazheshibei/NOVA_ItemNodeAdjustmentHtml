@@ -59,12 +59,12 @@ module.exports = {
 
   build: {
     // Template for index.html
-    index: path.resolve(__dirname, '../ItemNodeAdjustmentHtml/ItemNodeAdjustmentHtml.html'),
+    index: path.resolve(__dirname, '../itemnodeadjustment/itemNodeBatchAdjustment.html'),
 
     // Paths
-    assetsRoot: path.resolve(__dirname, '../ItemNodeAdjustmentHtml'),
-    assetsSubDirectory: 'static',
-    assetsPublicPath: '/nova/pages/ItemNodeAdjustmentHtml/',
+    assetsRoot: path.resolve(__dirname, '../itemnodeadjustment/'),
+    assetsSubDirectory: 'itemNodeBatchAdjustment',
+    assetsPublicPath: '/nova/pages/itemnodeadjustment/',
 
     /**
      * Source Maps

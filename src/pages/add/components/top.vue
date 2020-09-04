@@ -53,7 +53,7 @@
       <div class="formLabel">附件说明：</div>
       <div class="formTextBox">
         <div class="formText">
-          <el-upload class="comUpload" action="#" :multiple="true" :file-list="[]" :limit="5"
+          <el-upload class="comUpload" action="#" :multiple="true" :file-list="[]" :limit="5" list-type="picture"
             :on-preview="uploadLook" :http-request="uploadRequest" :before-remove="uploadRemove" :on-exceed="uploadExceed"
           >
             <el-button type="primary" size="mini" plain> + 上传附件</el-button>
@@ -61,6 +61,10 @@
         </div>
       </div>
     </div>
+
+    <el-dialog class="imgDialog" title="图片预览" :visible.sync="dialogVisible" :fullscreen="true">
+      <img :src="imageUrl" :style="imageStyle" alt="">
+    </el-dialog>
 
   </div>
 </template>
@@ -70,9 +74,17 @@ import { mapState, mapGetters } from 'vuex'
 export default {
   data() {
     return {
+      dialogVisible: false, //  是否：显示预览
+      imageStyle: {}, //        图片样式
+      imageUrl: '', //          图片地址
       adjustment_reason: '', // 变更原因
       adjustment_remark: '', // 变更说明
       newTemplate: false
+    }
+  },
+  created() {
+    this.imageStyle = {
+      width: `${window.document.documentElement.clientWidth - 40}px`
     }
   },
   computed: {
@@ -94,15 +106,20 @@ export default {
       const { acce_id, name, url, is_pic } = file
       if (acce_id) {
         if (is_pic === 1) {
-          /* 图片：预览 */
-          window.open(url)
+          /* 服务器图片：预览 */
+          this.imageUrl = url
+          this.dialogVisible = true
         } else {
-          /* 文件：下载 */
+          /* 服务器文件：下载 */
           const a = document.createElement('a')
           a.href = url
           a.download = name
           a.click()
         }
+      } else if (url.indexOf('blob') !== -1 && file.raw.type.indexOf('image') !== -1) {
+        /* 本地图片：预览 */
+        this.imageUrl = url
+        this.dialogVisible = true
       }
     },
     /**
@@ -111,7 +128,6 @@ export default {
     uploadRequest(params) {
       const { file } = this.$store.state
       file[params.file.uid] = params.file
-      // console.log(file)
       this.$store.commit('assignData', { name: 'file', obj: file })
     },
     /**
@@ -194,14 +210,43 @@ export default {
   display: flex !important;
   align-items: center !important;
 }
+.comUpload > .el-upload > button {
+  margin-right: 20px !important;
+}
 .comUpload > .el-upload-list {
-  margin-left: 20px !important;
   display: flex !important;
   flex-wrap: wrap !important;
 }
 .comUpload > .el-upload-list > .el-upload-list__item {
-  margin: 2px 10px 2px 0 !important;
+  height: 25px !important;
+  margin: 0 10px 0 0 !important;
+  padding: 0 10px 0 3px !important;
   background-color: #ecf5ff !important;
-  flex: 0 !important;
+  border-radius: 4px !important;
+  border: none !important;
+  flex: 1 !important;
+}
+.comUpload > .el-upload-list > .el-upload-list__item:focus { /* 隐藏：点击后的轮廓 */
+  outline: none !important;
+}
+.comUpload > .el-upload-list > .el-upload-list__item > img { /* 隐藏：图片缩略图 */
+  display: none !important;
+}
+.comUpload > .el-upload-list > .el-upload-list__item > .el-icon-close-tip { /* 隐藏：删除提示 */
+  display: none !important;
+}
+.comUpload > .el-upload-list > .el-upload-list__item > .el-icon-close { /* 调整：删除按钮位置 */
+  top: 7px !important;
+}
+.comUpload > .el-upload-list > .el-upload-list__item > .el-upload-list__item-name {
+  cursor: pointer !important;
+  margin: 0 10px 0 0 !important;
+}
+.comUpload > .el-upload-list > .el-upload-list__item > .el-upload-list__item-name > i { /* 隐藏：默认图标 */
+  display: none !important;
+}
+/*** 预览 ***/
+.imgDialog > .el-dialog > .el-dialog__body {
+  padding: 0 20px 20px !important;
 }
 </style>
