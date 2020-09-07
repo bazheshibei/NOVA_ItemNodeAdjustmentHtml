@@ -51,7 +51,7 @@
 
       <!-- 循环节点 -->
       <div v-for="(val, key) in nodeData" :key="'node_' + key">
-        <el-table-column v-for="(item, index) in val" :key="index" :label="item" width="150">
+        <el-table-column v-for="(item, index) in val" :key="index" :label="item" width="130">
           <template slot-scope="scope">
             <div v-if="scope.row[index]">
               <span v-if="scope.row[index].is_delete === 0">/</span>
@@ -132,93 +132,5 @@ export default {
 }
 .comTable {
   border-top: 0;
-}
-
-/*** 表格容器 ***/
-.tableP {
-  text-align: left;
-}
-.tableInput {
-  width: 100%;
-}
-.tableSelect {
-  width: 100px;
-}
-.comInput {
-  width: 125px;
-  margin: 2px 0;
-}
-.warningIcon { /* 报错 */
-  color: #F56C6C;
-  font-size: 16px;
-}
-.red {
-  color: #F56C6C;
-}
-.hover {
-  cursor: pointer;
-}
-.editIcon { /* 编辑图标 */
-  color: #409EFF;
-  font-size: 14px;
-}
-
-/*** 弹出层 ***/
-.lineBox {
-  font-size: 12px;
-  border-bottom: 1px solid #E4E7ED;
-  border-left: 1px solid #E4E7ED;
-  display: flex;
-  align-items: center;
-  flex: 1;
-}
-.lineBox:first-child {
-  border-top: 1px solid #E4E7ED;
-}
-.lineLabel {
-  width: 110px;
-  min-width: 110px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-.lineText {
-  min-height: 35px;
-  padding: 0 6px;
-  border-right: 1px solid #E4E7ED;
-  display: flex;
-  align-items: center;
-  flex: 1;
-}
-.comInput2 {
-  flex: 1;
-}
-
-/*** 角标 ***/
-.badge {
-  font-size: 6px;
-  position: absolute;
-  top: 2px;
-  right: -50px;
-  transform: rotate(35deg);
-  transform-origin: center;
-  color: #ffffff;
-  font-size: 10px;
-  line-height: 16px;
-  background: #C0C4CC;
-  padding: 0 50px;
-}
-</style>
-
-<style>
-/*** 时间选择器：报错 ***/
-.errorPicker > input {
-  color: #F56C6C !important;
-  border-color: #F56C6C !important;
-}
-
-/*** 表格 ***/
-.comTable td {
-  overflow: hidden !important;
 }
 </style>

@@ -6,7 +6,7 @@
 
     <!-- 历史审核记录 -->
     <div class="comTableTitle">
-      <span>历史审核记录</span>
+      <span>【历史审核记录】</span>
     </div>
     <el-table :data="adjusmentAuditMapList" size="mini" border>
       <el-table-column prop="order_time" label="审核人">
@@ -38,7 +38,7 @@
 
     <!-- 审核 -->
     <div class="comTableTitle">
-      <span>审核</span>
+      <span>【审核】</span>
     </div>
     <div class="formLine">
       <div class="formLabel">审核结果：</div>
@@ -136,46 +136,6 @@ export default {
 
 <style scoped>
 .recordBox {
-  flex: 1;
-}
-.comTableTitle {
-  color: #409EFF;
-  font-size: 14px;
-  padding: 10px;
-  background: #ecf5ff;
-  flex: 1;
-}
-
-/*** 表单 ***/
-.formLine { /* 单行 */
-  width: 100%;
-  font-size: 12px;
-  display: flex;
-}
-.formLabel { /* 标题 */
-  width: 90px;
-  min-width: 90px;
-  min-height: 40px;
-  white-space: nowrap;
-  padding: 0 4px;
-  border-right: 1px solid #EBEEF5;
-  border-bottom: 1px solid #EBEEF5;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-.formTextBox {
-  display: flex;
-  flex-wrap: wrap;
-  flex: 1;
-}
-.formText { /* 值 */
-  white-space: nowrap;
-  padding: 6px 10px;
-  border-right: 1px solid #EBEEF5;
-  border-bottom: 1px solid #EBEEF5;
-  display: flex;
-  align-items: center;
   flex: 1;
 }
 
