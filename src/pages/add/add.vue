@@ -74,7 +74,7 @@ export default {
       if (ganttTemplateList.length === 1) {
         this.$store.state.activeTemplateId = ganttTemplateList[0].node_template_id // 获取当前模板ID
       } else if (ganttTemplateList.length > 1) {
-        // this.choiceTemplate = true // 选择模板
+        this.choiceTemplate = true // 选择模板
       }
       this.ganttTemplateList = ganttTemplateList
     }

@@ -58,10 +58,10 @@
     <div class="formLine">
       <div class="formLabel">下一步审核：</div>
       <div class="formTextBox">
-        <div class="formText">{{audit_result === 1 ? next_audit_stage : '审核结束'}}</div>
+        <div class="formText">{{(audit_result === 1 && nextAuditNode !== 3) ? next_audit_stage : '审核结束'}}</div>
       </div>
-      <div class="formLabel" v-if="audit_result === 1">下一步审核人：</div>
-      <div class="formTextBox" v-if="audit_result === 1">
+      <div class="formLabel" v-if="audit_result === 1 && nextAuditNode !== 3">下一步审核人：</div>
+      <div class="formTextBox" v-if="audit_result === 1 && nextAuditNode !== 3">
         <div class="formText">
           <el-select class="tableSelect" size="mini" v-model="people" :multiple="is_multiple" @change="changeEvent('people', $event)">
             <el-option class="comSelectOptions" v-for="(item, index) in nextAuditMap.auditEmployeeMap" :key="'options_' + index" :label="item.employeename" :value="index"></el-option>
@@ -82,19 +82,22 @@ export default {
       is_multiple: false, // 是否多选
       audit_result: 1, //    审核结果
       audit_remark: '', //   审核意见
-      audit_result_obj: { 1: '草稿中', 2: '审核中', 3: '审核通过', 4: '审核驳回', 5: '撤销审核', 6: '审核人审核调整' }
+      audit_result_obj: { 0: '发起申请', 1: '通过', 2: '驳回', 3: '驳回后重新发起', 4: '撤销申请', 5: '撤销后重新发起' }
     }
   },
   computed: {
-    ...mapState(['adjusmentAuditMapList', 'next_audit_stage']),
+    ...mapState(['adjusmentAuditMapList', 'next_audit_stage', 'nextAuditNode']),
     ...mapState({
       nextAuditMap: function (state) {
         const { nextAuditMap = {} } = state
+        const { nextAuditNode, now_audit_stage } = nextAuditMap
+        this.$store.commit('saveData', { name: 'nextAuditNode', obj: nextAuditNode })
+        this.$store.commit('saveData', { name: 'now_audit_stage', obj: now_audit_stage })
         if (Object.keys(nextAuditMap).length && nextAuditMap.auditNodeMap) {
-          const { auditNodeMap: { node_name, node_type, is_multiple, up_node_id } } = nextAuditMap
+          const { auditNodeMap: { node_name, node_id, node_type, is_multiple } } = nextAuditMap
           this.$store.commit('saveData', { name: 'next_audit_stage', obj: node_name })
+          this.$store.commit('saveData', { name: 'next_audit_stage_id', obj: node_id })
           this.$store.commit('saveData', { name: 'next_node_type', obj: node_type })
-          this.$store.commit('saveData', { name: 'now_audit_stage', obj: up_node_id })
           this.is_multiple = Boolean(is_multiple)
         }
         return nextAuditMap

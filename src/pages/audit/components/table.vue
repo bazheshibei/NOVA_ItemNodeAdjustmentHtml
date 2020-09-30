@@ -52,8 +52,27 @@
       <!-- 循环节点 -->
       <!-- -->
       <div v-for="(val, key) in nodeData" :key="'node_' + key">
-        <el-table-column v-for="(item, index) in val" :key="index" :label="item" width="130">
+        <el-table-column v-for="(item, index) in val" :key="index" :label="item" width="140">
           <template slot-scope="scope">
+            <p v-if="scope.row[index]">
+              <!-- {{scope.row[index].is_new}} --- {{scope.row[index].adjusment_status}} --- {{scope.row[index].topText}} -- {{scope.row[index].item_node_id}} -->
+              {{scope.row[index].is_must_edit}}
+              <!--
+              2c9f10b6667a610801667bd56a4a02c1  面辅料送检ECT
+              2c915e10742a049c01742dc82e890089  面料全部到厂
+              2c915e10742a049c01742df611e60094  产前样确认
+              2c915e10742a049c01742ed46135009a  衬匹配测试
+              2c915e10742a049c01742ee2e151009b  成衣送检
+              2c915e10742a049c01742f0d3533009d  包装用辅料到齐
+              2c915e10742a049c01742f1709ac009e  面料一批到厂检验
+              8a8a806273ea5f870173eaccc58d0000  面料验货
+              8a8a806273ea5f870173ead59f330005  面料到齐检验
+              8a8a8062647e434601647e53e22b000a  首批确认
+              8a8a8062647e434601647e53e270000b  一批到厂
+              8a8a8062647e434601647e58b51d001b  PP备料
+              8a8a8062647e434601647e60d801002a  洗标申请 -->
+            </p>
+
             <div v-if="scope.row[index]">
               <span v-if="scope.row[index].is_delete === 0">/</span>
               <div v-else-if="scope.row.rowType === 1">

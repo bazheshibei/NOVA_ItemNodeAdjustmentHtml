@@ -51,7 +51,7 @@
       <!-- 循环节点 -->
       <!-- -->
       <div v-for="(val, key) in nodeData" :key="'node_' + key">
-        <el-table-column v-for="(item, index) in val" :key="index" :label="item" width="130">
+        <el-table-column v-for="(item, index) in val" :key="index" :label="item" width="150">
           <template slot-scope="scope">
             <div v-if="scope.row[index]">
               <span v-if="scope.row[index].is_delete === 0">/</span>
@@ -176,7 +176,7 @@ export default {
     }
   },
   computed: {
-    ...mapState(['nodeData', 'gantt_type', 'item_name', 'tableData', 'itemSummaryItemData']),
+    ...mapState(['nodeData', 'nodeData_0', 'gantt_type', 'item_name', 'tableData', 'itemSummaryItemData']),
     ...mapGetters(['tableList'])
   },
   methods: {
