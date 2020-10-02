@@ -164,9 +164,8 @@ Tool.returnTableData = function (state) {
       const { adjusmentDetailList = [] } = data // 甘特表变更信息
       const newNodeObj = {} //  变更后的属性
       const nullNodeObj = {} // 变更后的空属性
-      adjusmentDetailList.map(function (item) {
-        item.is_must_submit = true
-        const obj = {}
+      adjusmentDetailList.forEach(function (item) {
+        const obj = { is_must_submit: true }
         const obj_null = {}
         for (const x in item) {
           if (item[x] && item[x] !== null && item[x] !== '') {
@@ -187,7 +186,8 @@ Tool.returnTableData = function (state) {
       /* 提取：变量日期 */
       const startEndDateMap = JSON.parse(data.jzz_data || '{}')
       data.itemNodeDataList.forEach(function (node) {
-        startEndDateMap['${' + node.node_code + '}'] = node.plan_enddate || node.first_plant_enddate
+        const { change_plan_time, first_plant_enddate } = node
+        startEndDateMap['${' + node.node_code + '}'] = change_plan_time || first_plant_enddate
       })
       /* 计算 */
       data.itemNodeDataList.forEach(function (node) {
@@ -264,7 +264,7 @@ Tool.returnTableList = function (state) {
       deliver_date //      接口：交货日期
     }
   } = state
-  console.log('合并后的表格数据 ----- ', tableData)
+  // console.log('合并后的表格数据 ----- ', tableData)
   if (isComputed) {
     const [itemIndex, nodeId, nodeName] = changeIndexId.split('_')
     tableData.map(function (item, index) {
