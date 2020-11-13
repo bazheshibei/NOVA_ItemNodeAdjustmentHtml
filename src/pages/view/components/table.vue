@@ -56,7 +56,7 @@
             <div v-if="scope.row[index]">
               <span v-if="scope.row[index].is_delete === 0">/</span>
               <div v-else-if="scope.row.rowType === 1">
-                <span class="badge" v-if="scope.row[index].topText && scope.row[index].adjusment_status === 1">锁定</span>
+                <span class="badge" v-if="_isLock(scope.row, index)">锁定</span>
                 <!-- 计划完成：展示 -->
                 <el-popover popper-class="comPopover" :visible-arrow="false" placement="top" trigger="hover" :content="scope.row[index].maxMinText">
                   <span slot="reference" :class="scope.row[index].error ? 'red' : ''">{{scope.row[index].time}}</span>
@@ -65,8 +65,8 @@
               <!-- 本次调整 -->
               <div v-else-if="scope.row.rowType === 2" :class="scope.row[index].error ? 'red' : ''">
                 <div style="text-align: left;">
-                  <p v-if="scope.row[index].change_remaark">调整后：{{scope.row[index].change_plan_time}}</p>
-                  <p v-if="scope.row[index].change_remaark">原因：{{scope.row[index].change_remaark}}</p>
+                  <p v-if="_isShowText(scope.row, index)">调整后：{{scope.row[index].change_plan_time}}</p>
+                  <p v-if="_isShowText(scope.row, index)">原因：{{scope.row[index].change_remaark}}</p>
                 </div>
               </div>
               <!-- 审批调整 -->
@@ -119,7 +119,38 @@ export default {
           return { rowspan: 0, colspan: 0 }
         }
       }
+    },
+    /**
+     * [是否：锁定]
+     * @param  {[Object]}  row   表格单行数据
+     * @param  {[Object]}  index 节点信息
+     * @return {[Boolean]}       是否显示
+     */
+    _isLock(row, index) {
+      const node = row[index]
+      let status = false
+      if (node) {
+        if (node.topText && String(node.adjusment_status) === '1') {
+          status = true
+        }
+      }
+      return status
+    },
+    /**
+     * [是否：本次调整 显示 文字]
+     * @param  {[Object]}  row   表格单行数据
+     * @param  {[Object]}  index 节点信息
+     * @return {[Boolean]}       是否显示
+     */
+    _isShowText(row, index) {
+      const node = row[index]
+      let status = false
+      if (node.change_remaark) { // 调整说明
+        status = true
+      }
+      return status
     }
+    //
   }
 }
 </script>

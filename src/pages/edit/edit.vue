@@ -22,14 +22,14 @@
     </div>
 
     <!-- 选择模板 -->
-    <el-dialog class="comDialog" title="请选择模板" :visible.sync="choiceTemplate" width="50%" :show-close="false" :close-on-click-modal="false" :close-on-press-escape="false">
+    <!-- <el-dialog class="comDialog" title="请选择模板" :visible.sync="choiceTemplate" width="50%" :show-close="false" :close-on-click-modal="false" :close-on-press-escape="false">
       <div style="margin-bottom: 10px;" v-for="item in ganttTemplateList" :key="item.node_template_id">
         <el-radio v-model="templateId" :label="item.node_template_id" border size="mini">
           {{item.template_name}}
         </el-radio>
       </div>
       <el-button slot="footer" size="mini" type="primary" :disabled="!templateId" @click="choice">确定</el-button>
-    </el-dialog>
+    </el-dialog> -->
 
     <span style="display: none;">{{tableList}}</span>
 
@@ -46,7 +46,7 @@ export default {
   data() {
     return {
       choiceTemplate: false, // 是否选择模板
-      ganttTemplateList: [],
+      // ganttTemplateList: [],
       templateId: ''
     }
   },
@@ -78,13 +78,13 @@ export default {
     /**
      * [选中模板]
      */
-    choice() {
-      const { templateId = '' } = this
-      if (templateId) {
-        this.$store.commit('saveData', { name: 'activeTemplateId', obj: templateId })
-        this.choiceTemplate = false
-      }
-    },
+    // choice() {
+    //   const { templateId = '' } = this
+    //   if (templateId) {
+    //     this.$store.commit('saveData', { name: 'activeTemplateId', obj: templateId })
+    //     this.choiceTemplate = false
+    //   }
+    // },
     /**
      * [提交]
      * @param {[Int]} audit_result 1暂存，2提交审核
