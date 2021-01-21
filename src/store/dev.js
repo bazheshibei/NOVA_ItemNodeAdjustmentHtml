@@ -1,6 +1,7 @@
 
 import Tool from './tool.js'
 import { MessageBox } from 'element-ui'
+import LocalData from '@/localData/data.js'
 
 /**
  * 本地开发代码
@@ -14,7 +15,7 @@ const Dev = {}
  */
 Dev.A_nextBatchAdjusmentItemGantt = function (state, commit, page_type, obj) {
   if (page_type === 'add') {
-    const data = JSON.parse(localStorage.getItem('大货甘特表变更初始化')).data.data || { data: {} }
+    const data = LocalData['新增'].data.data || {}
     console.log('请求：大货甘特表变更初始化 ----- ', data)
     //
     const { adjustmentReason = [], business_type = '', ganttTemplateList = [], itemSummaryItemData = {}, itemSummaryDataList = [], nodeData = [], node_business_type_id = '', gantt_type = '3', item_name, item_id, adjustment_id } = data
@@ -40,11 +41,12 @@ Dev.A_nextBatchAdjusmentItemGantt = function (state, commit, page_type, obj) {
     /* 整理数据 */
     commit('returnTableData')
   } else {
-    const data = JSON.parse(localStorage.getItem('甘特表批量变更查看编辑审核')) || {}
-    // console.log('请求：甘特表批量变更查看编辑审核 ----- ', data)
+    const data = JSON.parse(localStorage.getItem('甘特表批量变更查看编辑审核') || '{}')
+    // const data = LocalData['编辑查看审核'] || {}
+    console.log('请求：甘特表批量变更查看编辑审核 ----- ', data)
     // console.log('下一步审核 ----- ', res.nextAuditMap)
     //
-    const { nextAuditMap, accessDataList = [], adjusmentAuditMapList = [], adjustment_reason = '', adjustment_remark = '', adjustmentReason = [], business_type = '', ganttTemplateList = [], itemSummaryItemData = {}, itemSummaryDataList = [], nodeData = [], node_business_type_id = '', gantt_type = '3', item_name, item_id, adjustment_id } = data
+    const { nextAuditMap, accessDataList = [], adjusmentAuditMapList = [], adjustment_reason = '', adjustment_remark = '', adjustmentReason = [], business_type = '', ganttTemplateList = [], itemSummaryItemData = {}, itemSummaryDataList = [], nodeData = [], node_business_type_id = '', gantt_type = '3', item_name, item_id, adjustment_id, employeename } = data
     const { ganttTemplateNewList, templateObj } = Tool.ganttTemplateListAddAttr(ganttTemplateList)
     state.adjustmentReason = adjustmentReason //            变更原因 -
     state.business_type = business_type //                  业务类型 -
@@ -63,6 +65,7 @@ Dev.A_nextBatchAdjusmentItemGantt = function (state, commit, page_type, obj) {
     state.adjusmentAuditMapList = adjusmentAuditMapList //  历史审核记录
     state.fileList = Tool.returnFileList(accessDataList) // 附件列表
     state.nextAuditMap = nextAuditMap //                    下一步审核
+    state.employeename = employeename
     /* 备份：原始节点 */
     const nodeData_0 = []
     for (let i = 0; i < nodeData.length; i++) {

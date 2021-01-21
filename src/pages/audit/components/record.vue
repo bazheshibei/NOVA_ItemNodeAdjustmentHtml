@@ -93,15 +93,15 @@ export default {
         const { nextAuditNode, now_audit_stage } = nextAuditMap
         this.$store.commit('saveData', { name: 'nextAuditNode', obj: nextAuditNode })
         this.$store.commit('saveData', { name: 'now_audit_stage', obj: now_audit_stage })
+        this.$store.commit('saveData', { name: 'next_node_type', obj: nextAuditNode })
         if (Object.keys(nextAuditMap).length && nextAuditMap.auditNodeMap) {
-          const { auditNodeMap: { node_name, node_id, is_multiple }, nextAuditNode, auditEmployeeMap } = nextAuditMap
+          const { auditNodeMap: { node_name, node_id, is_multiple }, auditEmployeeMap } = nextAuditMap
           if (auditEmployeeMap.length) {
             this.$store.commit('saveData', { name: 'next_audit_stage_employeeid', obj: auditEmployeeMap[0].employeeid })
             this.people = 0
           }
           this.$store.commit('saveData', { name: 'next_audit_stage', obj: node_name })
           this.$store.commit('saveData', { name: 'next_audit_stage_id', obj: node_id })
-          this.$store.commit('saveData', { name: 'next_node_type', obj: nextAuditNode })
           this.is_multiple = Boolean(is_multiple)
         }
         return nextAuditMap

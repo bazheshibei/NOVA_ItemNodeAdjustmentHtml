@@ -37,6 +37,19 @@ export default {
     /* 保存本地缓存信息 */
     const local = JSON.parse(localStorage.getItem('NOVA_ItemNodeAdjustmentHtml') || '{}')
     this.$store.commit('saveData', { name: 'local', obj: local })
+    /* 记录页面信息 */
+    const { gantt_type = '1' } = local
+    const ganttType = String(gantt_type)
+    let pageTitle = ''
+    if (ganttType === '4') {
+      pageTitle = '开发'
+    } else if (ganttType === '5' || ganttType === '6') {
+      pageTitle = '面料'
+    } else {
+      pageTitle = '大货'
+    }
+    this.$store.commit('saveData', { name: 'pageType', obj: ganttType })
+    this.$store.commit('saveData', { name: 'pageTitle', obj: pageTitle })
     /** 请求：变更初始化 **/
     this.$store.dispatch('A_nextBatchAdjusmentItemGantt')
 

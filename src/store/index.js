@@ -15,6 +15,8 @@ const store = new Vuex.Store({
     codeObj: { Dev, Prod }, // 代码类型 { Dev: '开发', Prod: '生产' }
     /* 本地缓存 */
     local: {},
+    pageType: '', //                    页面类型：'4'(开发), '5'(面料), '6'(面料分色)
+    pageTitle: '', //                   页面类型：'开发'('4'), '面料'('5' || '6'), '大货'(else)
     /* 初始化 */
     adjustmentReason: [], //            变更原因
     business_type: '', //               业务类型
@@ -37,6 +39,7 @@ const store = new Vuex.Store({
     nextAuditNode: 1, //                此变量 === 3 || 选择驳回，提示下一步审核结束、隐藏下一步审核人
     next_node_type: '', //              下一审核状态
     now_audit_stage: '', //             当前审核阶段
+    employeename: '', //                当前用户姓名
     /* 计算依据 */
     isToggle: false, //                 是否：切换新模板
     activeTemplateId: '', //            当前模板ID
@@ -106,7 +109,7 @@ const store = new Vuex.Store({
     tableList(state) {
       const list = Tool.returnTableList(state)
       state.isComputed = false
-      console.log('计算后的表格数据 ----- ', list)
+      // console.log('计算后的表格数据 ----- ', list)
       return list
     },
     /**

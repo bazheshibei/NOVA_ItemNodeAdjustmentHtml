@@ -43,7 +43,7 @@
       <div class="formTextBox">
         <div class="formText">
            <!-- type="textarea" -->
-          <el-input v-model="adjustment_remark" size="mini" placeholder="请输入变更说明" @change="changeForm('adjustment_remark')"></el-input>
+          <el-input v-model="adjustment_remark" size="mini" placeholder="请输入变更说明" maxlength="200" @change="changeForm('adjustment_remark')"></el-input>
         </div>
       </div>
     </div>

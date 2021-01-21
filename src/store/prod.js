@@ -63,7 +63,7 @@ Prod.A_nextBatchAdjusmentItemGantt = function (state, commit, page_type, obj) {
         // eslint-disable-next-line
         MessageBox({ title: '数据异常', message: msg, type: 'warning', closeOnClickModal: false, closeOnPressEscape: false, callback() { dg.close() } })
       } else {
-        const { nextAuditMap, accessDataList = [], adjusmentAuditMapList = [], adjustment_reason = '', adjustment_remark = '', adjustmentReason = [], business_type = '', ganttTemplateList = [], itemSummaryItemData = {}, itemSummaryDataList = [], nodeData = [], node_business_type_id = '', gantt_type = '3', item_name, item_id, adjustment_id } = data
+        const { nextAuditMap, accessDataList = [], adjusmentAuditMapList = [], adjustment_reason = '', adjustment_remark = '', adjustmentReason = [], business_type = '', ganttTemplateList = [], itemSummaryItemData = {}, itemSummaryDataList = [], nodeData = [], node_business_type_id = '', gantt_type = '3', item_name, item_id, adjustment_id, employeename } = data
         const { ganttTemplateNewList, templateObj } = Tool.ganttTemplateListAddAttr(ganttTemplateList)
         state.adjustmentReason = adjustmentReason //            变更原因 -
         state.business_type = business_type //                  业务类型 -
@@ -82,6 +82,7 @@ Prod.A_nextBatchAdjusmentItemGantt = function (state, commit, page_type, obj) {
         state.adjusmentAuditMapList = adjusmentAuditMapList //  历史审核记录
         state.fileList = Tool.returnFileList(accessDataList) // 附件列表
         state.nextAuditMap = nextAuditMap //                    下一步审核
+        state.employeename = employeename
         /* 备份：原始节点 */
         const nodeData_0 = []
         for (let i = 0; i < nodeData.length; i++) {
@@ -149,9 +150,8 @@ Prod.A_saveItemNodeAdjuestment = function (state, getters, audit_result) {
         // eslint-disable-next-line
         MessageBox({ title: '数据异常', message: msg, type: 'warning', closeOnClickModal: false, closeOnPressEscape: false })
       } else {
-        const loading = Loading.service({ text: String(audit_result) === '1' ? '暂存成功' : '提交成功', spinner: 'el-icon-circle-check' })
+        Loading.service({ text: String(audit_result) === '1' ? '暂存成功' : '提交成功', spinner: 'el-icon-circle-check' })
         setTimeout(() => {
-          loading.close()
           // eslint-disable-next-line
           dg.close()
         }, 1000)
@@ -176,9 +176,8 @@ Prod.A_adjusmentAuditSaveHtml = function (state, getters) {
         // eslint-disable-next-line
         MessageBox({ title: '数据异常', message: msg, type: 'warning', closeOnClickModal: false, closeOnPressEscape: false })
       } else {
-        const loading = Loading.service({ text: '提交成功', spinner: 'el-icon-circle-check' })
+        Loading.service({ text: '提交成功', spinner: 'el-icon-circle-check' })
         setTimeout(() => {
-          loading.close()
           // eslint-disable-next-line
           dg.close()
         }, 1000)

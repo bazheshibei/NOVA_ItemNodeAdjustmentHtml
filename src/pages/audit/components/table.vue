@@ -9,23 +9,37 @@
       <el-table-column label="项目名称" width="200" fixed>
         <template slot-scope="scope">
           {{item_name}}
-          <p v-if="scope.row.is_thread === 1 && String(gantt_type) !== '1'" style="color: #E6A23C;">(总线计划)</p>
-          <p v-else-if="String(gantt_type) !== '1'">
+          <p v-if="scope.row.is_thread === 1 && String(gantt_type) === '3'" style="color: #E6A23C;">(总线计划)</p>
+          <p v-else-if="String(gantt_type) === '3'">
             {{scope.row.short_name}}
             <span style="color: #E6A23C;">(分线计划)</span>
           </p>
         </template>
       </el-table-column>
-      <!-- 下单日期 -->
-      <el-table-column label="下单日期" width="100" fixed>
+      <!-- 下单日期 || 面料名称 || 面料下单日期 -->
+      <el-table-column width="100" fixed>
+        <template slot="header" slot-scope="scope">
+          <p v-if="pageTitle === '面料'">面料名称</p>
+          <p v-else-if="pageTitle === '开发'">面料下单日期</p>
+          <p v-else>下单日期</p>
+        </template>
         <template slot-scope="scope">
-          <p>{{itemSummaryItemData.order_time}}</p>
+          <p v-if="pageTitle === '面料'">{{itemSummaryItemData.material_describe}}</p>
+          <p v-else-if="pageTitle === '开发'">{{itemSummaryItemData.kf_receive_material_time}}</p>
+          <p v-else>{{itemSummaryItemData.order_time}}</p>
         </template>
       </el-table-column>
-      <!-- 客人交期 -->
-      <el-table-column label="客人交期" width="100" fixed>
+      <!-- 客人交期 || 面料下达日期 || 款式图下达日期 -->
+      <el-table-column width="100" fixed>
+        <template slot="header" slot-scope="scope">
+          <p v-if="pageTitle === '面料'">面料下达日期</p>
+          <p v-else-if="pageTitle === '开发'">款式图下达日期</p>
+          <p v-else>客人交期</p>
+        </template>
         <template slot-scope="scope">
-          <p>{{itemSummaryItemData.deliver_date}}</p>
+          <p v-if="pageTitle === '面料'">{{itemSummaryItemData.matter_release_time}}</p>
+          <p v-else-if="pageTitle === '开发'">{{itemSummaryItemData.kf_order_time}}</p>
+          <p v-else>{{itemSummaryItemData.deliver_date}}</p>
         </template>
       </el-table-column>
       <!-- 服装加工厂 -->
@@ -52,29 +66,45 @@
       <!-- 循环节点 -->
       <!-- -->
       <div v-for="(val, key) in nodeData" :key="'node_' + key">
-        <el-table-column v-for="(item, index) in val" :key="index" :label="item" width="140">
+        <el-table-column v-for="(item, index) in val" :key="index" :label="item" width="150">
           <template slot-scope="scope">
             <div v-if="scope.row[index] && !scope.row[index].is_must_hidden">
               <span v-if="scope.row[index].is_delete === 0">/</span>
               <div v-else-if="scope.row.rowType === 1">
-                <span class="badge" v-if="_isLock(scope.row, index)">锁定</span>
-                <!-- 计划完成：展示 -->
-                <el-popover popper-class="comPopover" :visible-arrow="false" placement="top" trigger="hover" :content="scope.row[index].maxMinText">
-                  <span slot="reference" :class="scope.row[index].error ? 'red' : ''">{{scope.row[index].time}}</span>
-                </el-popover>
+                <!-- <p>{{scope.row[index].node_code}}</p>
+                <br>
+                <p>{{scope.row[index].sys_clac_formula}}</p>
+                <br> -->
+                <span class="badge" v-if="String(scope.row.is_thread) !== '1' && (scope.row.isShow || String(scope.row[index].is_complete) === '1' || _isLock(scope.row, index))">锁定</span>
+                <!-- 计划完成：展示 [工厂主线 || 完成的节点 || 锁定的节点] -->
+                <div v-if="scope.row.isShow || String(scope.row[index].is_complete) === '1' || _isLock(scope.row, index)">
+                  {{scope.row[index].time}}
+                </div>
+                <!-- 计划完成：展示 [文本节点] -->
+                <div v-else-if="_isContentNode(scope.row, index)">
+                  <span>{{scope.row[index].time}}</span>
+                </div>
+                <!-- 计划完成：展示 [时间节点] -->
+                <div v-else>
+                  <el-popover popper-class="comPopover" :visible-arrow="false" placement="top" trigger="hover" :content="scope.row[index].maxMinText">
+                    <span slot="reference" :class="scope.row[index].error ? 'red' : ''">{{scope.row[index].time}}</span>
+                  </el-popover>
+                </div>
               </div>
               <!-- 本次调整 -->
-              <div v-else-if="scope.row.rowType === 2" :class="scope.row[index].error ? 'red' : ''">
-                <div style="text-align: left;">
-                  <p v-if="_isShowText(scope.row, index)">调整后：{{scope.row[index].change_plan_time || '未调整'}}</p>
-                  <p v-if="_isShowText(scope.row, index)">原因：{{scope.row[index].change_remaark}}</p>
+              <div v-else-if="scope.row.rowType === 2">
+                <div v-if="_isContentNode(scope.row, index)" style="text-align: left;">
+                  <p>{{scope.row[index].change_remaark}}</p>
+                </div>
+                <div v-else-if="_isShowText(scope.row, index)" style="text-align: left;">
+                  <p>调整后：{{scope.row[index].after_plan_enddate || scope.row[index].change_plan_time || '未调整'}}</p>
+                  <p>原因：{{scope.row[index].change_remaark}}</p>
                 </div>
               </div>
               <!-- 审批调整 -->
-              <div v-else-if="scope.row.rowType === 3 && scope.row[index].is_new" :class="scope.row[index].error ? 'red' : ''">
-                <div style="text-align: left;" v-if="scope.row[index].audit_process_record">
-                  <p>调整后：{{scope.row[index].final_audit_plan_enddate || '未调整'}}</p>
-                  <p>原因：{{scope.row[index].audit_process_record}}</p>
+              <div v-else-if="scope.row.rowType === 3">
+                <div v-if="scope.row[index].audit_process_record" style="text-align: left;">
+                  <p v-for="(val, key) in scope.row[index].audit_process_record" :key="'text_' + key">{{val}}</p>
                 </div>
                 <i class="el-icon-edit-outline editIcon hover" v-if="!_isLock(scope.row, index) || scope.row[index].is_must_edit" @click="edit(scope.$index, index, item)"></i>
               </div>
@@ -93,13 +123,13 @@
         <div class="lineLabel">当前节点：</div>
         <div class="lineText">{{d_data.node_name}}</div>
       </div>
-      <div class="lineBox">
+      <div class="lineBox" v-if="(d_data.node_content_type === 'time' || d_data.node_content_type !== 'content')">
         <div class="lineLabel">系统计算日期：</div>
-        <div class="lineText">{{d_data.plan_enddate}}</div>
+        <div class="lineText">{{d_data.after_plan_enddate || d_data.plan_enddate}}</div>
         <div class="lineLabel">异常原因：</div>
         <div class="lineText">{{d_data.verification_remark}}</div>
       </div>
-      <div class="lineBox">
+      <div class="lineBox" v-if="(d_data.node_content_type === 'time' || d_data.node_content_type !== 'content')">
         <div class="lineLabel">是否调整日期：</div>
         <div class="lineText">
           <el-radio v-model="d_data.is_change" :label="1" @change="isChangeTime">是</el-radio>
@@ -107,13 +137,13 @@
         </div>
         <div class="lineLabel">调整后日期：</div>
         <div class="lineText">
-          <el-input class="comTimeInput" :class="d_data.error && d_data.is_change === 1 ? 'errorInput' : ''" slot="reference" size="mini" placeholder="请输入日期" maxlength="10"
+          <el-input class="comTimeInput" :class="d_data.error && d_data.is_change === 1 ? 'errorInput' : ''" slot="reference" size="mini" placeholder="请输入日期或 /" maxlength="10"
             :disabled="d_data.is_change === 0 ? true : false"
             v-model="d_data.change_plan_time" @blur="blur_dialog('change_plan_time')"
           ></el-input>
         </div>
       </div>
-      <div class="lineBox">
+      <div class="lineBox" v-if="(d_data.node_content_type === 'time' || d_data.node_content_type !== 'content')">
         <div class="lineLabel">日期最小值：</div>
         <div class="lineText">
           {{d_data.min_plant_enddate}}
@@ -123,20 +153,36 @@
           {{d_data.max_plant_enddate}}
         </div>
       </div>
-      <div class="lineBox">
+      <div class="lineBox" v-if="(d_data.node_content_type === 'time' || d_data.node_content_type !== 'content')">
         <div class="lineLabel">
           <span class="red" v-if="d_data.error">*</span>
           调整原因/意见：
         </div>
         <div class="lineText">
-          <el-input class="comInput2" v-model="d_data.change_remaark" size="mini" placeholder="请填写调整原因/意见"></el-input>
+          <el-input class="comInput2" v-model="d_data.change_remaark" size="mini" placeholder="请填写调整原因/意见" maxlength="200"></el-input>
         </div>
       </div>
-      <div class="lineBox" v-if="d_data.is_change === 1">
+      <div class="lineBox" v-if="d_data.is_change === 1 && (d_data.node_content_type === 'time' || d_data.node_content_type !== 'content')">
         <div class="lineLabel" style="width: auto;">&nbsp;&nbsp;&nbsp;是否根据当前节点的时间去计算其他节点：</div>
         <div class="lineText">
           <el-radio v-model="d_data.isComputedOther" :label="true">是</el-radio>
           <el-radio v-model="d_data.isComputedOther" :label="false">否</el-radio>
+        </div>
+      </div>
+      <div class="lineBox" v-if="d_data.node_content_type === 'content'">
+        <div class="lineLabel">节点信息：</div>
+        <div class="lineText">{{d_data.plan_enddate}}</div>
+      </div>
+      <div class="lineBox" v-if="d_data.node_content_type === 'content'">
+        <div class="lineLabel">调整后节点信息：</div>
+        <div class="lineText">
+          <el-input class="" size="mini" placeholder="请输入文字内容" maxlength="200" v-model="d_data.change_plan_time"></el-input>
+        </div>
+      </div>
+      <div class="lineBox" v-if="d_data.node_content_type === 'content'">
+        <div class="lineLabel">调整原因/意见：</div>
+        <div class="lineText">
+          <el-input class="" size="mini" placeholder="请填写调整原因/意见" maxlength="200" v-model="d_data.change_remaark"></el-input>
         </div>
       </div>
       <!-- 弹出层：按钮 -->
@@ -161,7 +207,7 @@ export default {
     }
   },
   computed: {
-    ...mapState(['nodeData', 'gantt_type', 'item_name', 'itemSummaryItemData', 'itemSummaryDataList']),
+    ...mapState(['nodeData', 'gantt_type', 'item_name', 'itemSummaryItemData', 'itemSummaryDataList', 'pageTitle', 'employeename']),
     ...mapGetters(['tableList'])
   },
   methods: {
@@ -175,8 +221,10 @@ export default {
       const { itemSummaryItemData: { order_time, deliver_date }, item_name } = this // 下单时间，客人交期,项目名称
       const row = this.tableList[index]
       const { short_name } = row // 工厂名称
-      const { error, plan_enddate, time, change_remaark, is_change = 0, isComputedOther = false, time: change_plan_time, verification_remark, max_plant_enddate, min_plant_enddate } = row[nodeId]
+      const { error, node_content_type, SH_text: text, timeType, audit_process_record = '', auditSplitLength, after_plan_enddate, plan_enddate, time, is_change = 0, isComputedOther = false, time: change_plan_time, verification_remark, max_plant_enddate, min_plant_enddate } = row[nodeId]
       const node_name = short_name ? [item_name, short_name, nodeName].join(' > ') : [item_name, nodeName].join(' > ')
+      const length = audit_process_record.length
+      const change_remaark = timeType === 2 && audit_process_record.length ? audit_process_record[length - 1].split('原因：')[1] : ''
       /* 赋值 */
       const d_data = {
         index, //               行索引
@@ -195,7 +243,12 @@ export default {
         is_change, //           是否调整日期
         isComputedOther, //     是否根据当前节点的时间去计算其他节点
         change_plan_time, //    调整后日期
-        change_remaark //       调整/异常原因
+        change_remaark, //      调整/异常原因
+        after_plan_enddate,
+        audit_process_record,
+        auditSplitLength,
+        text,
+        node_content_type
       }
       this.d_data = d_data
       this.dialogVisible = true
@@ -215,8 +268,8 @@ export default {
      */
     blur_dialog(name) {
       const { d_data } = this
-      const { max_plant_enddate, min_plant_enddate, order_time, deliver_date } = d_data
-      const time = Tool._toggleTime(d_data[name])
+      const { max_plant_enddate, min_plant_enddate, order_time, deliver_date, after_plan_enddate, plan_enddate } = d_data
+      const time = name === 'plan_enddate' ? Tool._toggleTime(after_plan_enddate || plan_enddate) : Tool._toggleTime(d_data[name])
       const { status } = Tool._isError(max_plant_enddate, min_plant_enddate, time, order_time, deliver_date)
       this.d_data.time = time
       this.d_data.error = status
@@ -227,35 +280,62 @@ export default {
      */
     submit(title) {
       const { d_data, tableList } = this
-      const { index, error, nodeId, time, change_plan_time, change_remaark, is_change, isComputedOther, nodeName, plan_enddate } = d_data
+      const { index, node_content_type, error, nodeId, time, change_plan_time, change_remaark, is_change, isComputedOther, nodeName, after_plan_enddate, plan_enddate } = d_data
       /* 报错：报错 && 没写'调整/异常原因' */
-      if (error && !change_remaark) {
+      if (error && !change_remaark && node_content_type === 'time') {
         this.$message({ showClose: true, message: '请填写 调整/异常原因 后再保存', type: 'warning' })
         return false
       }
       /* 报错：变更 && （没写时间 || 系统计算时间 === 当前时间） */
-      if (is_change === 1 && (!change_plan_time || plan_enddate === change_plan_time)) {
+      if (is_change === 1 && (!change_plan_time || change_plan_time === (after_plan_enddate || plan_enddate)) && node_content_type === 'time') {
         this.$message({ showClose: true, message: '请修改 调整日期 后再保存', type: 'warning' })
         return false
       }
       /* ----- 保存 ----- */
+      const _getTime = this._getTime()
+      const { employeename } = this
       const node = tableList[index][nodeId]
-      node.time = change_plan_time
-      node.change_plan_time = change_plan_time
-      node.is_change = is_change
-      node.change_remaark = change_remaark
-      node.isComputedOther = isComputedOther
-      node.error = error
-      if (is_change === 0) {
-        node.time = time
-        node.change_plan_time = ''
+      if (node_content_type === 'time' || node_content_type !== 'content') {
+        node.time = change_plan_time || after_plan_enddate || plan_enddate
+        node.final_audit_plan_enddate = change_plan_time
+        node.is_change = is_change
+        node.isComputedOther = isComputedOther
+        node.error = error
+        node.timeType = 2
+        if (is_change === 0) {
+          node.time = change_plan_time || after_plan_enddate || time
+          node.final_audit_plan_enddate = ''
+          node.audit_process_record.length = node.SH_text.length
+          node.timeType = 1
+        } else if (is_change === 1) {
+          if (node.auditSplitLength === node.audit_process_record.length) {
+            node.audit_process_record.push(`【${_getTime} ${employeename}】变更日期为${change_plan_time}；原因：${change_remaark}`) // 审核过程记录
+          } else {
+            node.audit_process_record[node.audit_process_record.length - 1] = `【${_getTime} ${employeename}】变更日期为${change_plan_time}；原因：${change_remaark}`
+          }
+        }
+        /* ----- 修改原始数据 ----- */
+        const { oldIndex } = tableList[index]
+        const oldData = this.itemSummaryDataList[oldIndex][nodeId]
+        oldData.time = change_plan_time
+        oldData.is_change = is_change
+        if (is_change === 0) {
+          oldData.time = change_plan_time || after_plan_enddate || time
+          oldData.final_audit_plan_enddate = ''
+          oldData.audit_process_record.length = oldData.SH_text.length
+          oldData.timeType = 1
+        } else if (is_change === 1) {
+          if (node.auditSplitLength === node.audit_process_record.length) {
+            oldData.audit_process_record.push(`【${_getTime} ${employeename}】变更日期为${change_plan_time}；原因：${change_remaark}`) // 审核过程记录
+          } else {
+            oldData.audit_process_record[node.audit_process_record.length - 1] = `【${_getTime} ${employeename}】变更日期为${change_plan_time}；原因：${change_remaark}`
+          }
+        }
+      } else {
+        node.time = change_plan_time
+        node.final_audit_plan_enddate = change_plan_time
+        node.change_remaark = change_remaark
       }
-      /* ----- 修改原始数据 ----- */
-      const { oldIndex } = tableList[index]
-      const oldData = this.itemSummaryDataList[oldIndex][nodeId]
-      oldData.time = is_change === 0 ? time : change_plan_time
-      oldData.is_change = is_change
-      oldData.change_remaark = change_remaark
       /* 触发计算 */
       this.$store.commit('saveData', { name: 'changeIndexId', obj: `${index}_${nodeId}_${nodeName}` })
       this.$store.commit('saveData', { name: 'isComputed', obj: true })
@@ -266,11 +346,11 @@ export default {
      */
     objectSpanMethod({ row, column, rowIndex, columnIndex }) {
       const { gantt_type } = this
-      let num = '0'
+      let num = 0
       if (String(gantt_type) === '3') {
         num = 5 // 工厂
       } else {
-        num = 3 // 投产、排产
+        num = 3 // 投产、排产、面料
       }
       if (columnIndex < num) {
         const { count } = row
@@ -290,12 +370,27 @@ export default {
      * @return {[Boolean]}       是否显示
      */
     _isLock(row, index) {
-      const node = row[index]
+      const node = row[index] || {}
       let status = false
-      if (node) {
-        if (node.topText && String(node.adjusment_status) === '1') {
-          status = true
-        }
+      if (node.topText || String(node.adjusment_status) === '1') { // (完成待审核 || 完成) || 审核中
+        status = true
+      }
+      if (node.isLock) {
+        status = true
+      }
+      return status
+    },
+    /**
+     * [是否：文本节点]
+     * @param  {[Object]}  row   表格单行数据
+     * @param  {[Object]}  index 节点信息
+     * @return {[Boolean]}       是否显示
+     */
+    _isContentNode(row, index) {
+      const node = row[index] || {}
+      let status = false
+      if (node.node_content_type === 'content') { // 文本节点
+        status = true
       }
       return status
     },
@@ -306,12 +401,20 @@ export default {
      * @return {[Boolean]}       是否显示
      */
     _isShowText(row, index) {
-      const node = row[index]
+      const node = row[index] || {}
       let status = false
-      if (node.change_remaark) { // 调整说明
+      const { after_plan_enddate = '', change_plan_time = '', change_remaark = '' } = node
+      if (after_plan_enddate || change_plan_time || change_remaark) { // 调整：时间 || 说明
         status = true
       }
       return status
+    },
+    _getTime() {
+      const d = new Date()
+      const year = d.getFullYear()
+      const month = d.getMonth() + 1 < 10 ? '0' + (d.getMonth() + 1) : d.getMonth() + 1
+      const day = d.getDate() < 10 ? '0' + d.getDate() : d.getDate()
+      return `${year}-${month}-${day}`
     }
     //
   }

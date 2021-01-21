@@ -9,23 +9,37 @@
       <el-table-column label="项目名称" width="200" fixed>
         <template slot-scope="scope">
           {{item_name}}
-          <p v-if="scope.row.is_thread === 1 && String(gantt_type) !== '1'" style="color: #E6A23C;">(总线计划)</p>
-          <p v-else-if="String(gantt_type) !== '1'">
+          <p v-if="scope.row.is_thread === 1 && String(gantt_type) === '3'" style="color: #E6A23C;">(总线计划)</p>
+          <p v-else-if="String(gantt_type) === '3'">
             {{scope.row.short_name}}
             <span style="color: #E6A23C;">(分线计划)</span>
           </p>
         </template>
       </el-table-column>
-      <!-- 下单日期 -->
-      <el-table-column label="下单日期" width="100" fixed>
+      <!-- 下单日期 || 面料名称 || 面料下单日期 -->
+      <el-table-column width="100" fixed>
+        <template slot="header" slot-scope="scope">
+          <p v-if="pageTitle === '面料'">面料名称</p>
+          <p v-else-if="pageTitle === '开发'">面料下单日期</p>
+          <p v-else>下单日期</p>
+        </template>
         <template slot-scope="scope">
-          <p>{{itemSummaryItemData.order_time}}</p>
+          <p v-if="pageTitle === '面料'">{{itemSummaryItemData.material_describe}}</p>
+          <p v-else-if="pageTitle === '开发'">{{itemSummaryItemData.kf_receive_material_time}}</p>
+          <p v-else>{{itemSummaryItemData.order_time}}</p>
         </template>
       </el-table-column>
-      <!-- 客人交期 -->
-      <el-table-column label="客人交期" width="100" fixed>
+      <!-- 客人交期 || 面料下达日期 || 款式图下达日期 -->
+      <el-table-column width="100" fixed>
+        <template slot="header" slot-scope="scope">
+          <p v-if="pageTitle === '面料'">面料下达日期</p>
+          <p v-else-if="pageTitle === '开发'">款式图下达日期</p>
+          <p v-else>客人交期</p>
+        </template>
         <template slot-scope="scope">
-          <p>{{itemSummaryItemData.deliver_date}}</p>
+          <p v-if="pageTitle === '面料'">{{itemSummaryItemData.matter_release_time}}</p>
+          <p v-else-if="pageTitle === '开发'">{{itemSummaryItemData.kf_order_time}}</p>
+          <p v-else>{{itemSummaryItemData.deliver_date}}</p>
         </template>
       </el-table-column>
       <!-- 服装加工厂 -->
@@ -51,29 +65,37 @@
 
       <!-- 循环节点 -->
       <div v-for="(val, key) in nodeData" :key="'node_' + key">
-        <el-table-column v-for="(item, index) in val" :key="index" :label="item" width="140">
+        <el-table-column v-for="(item, index) in val" :key="index" :label="item" width="150">
           <template slot-scope="scope">
             <div v-if="scope.row[index]">
               <span v-if="scope.row[index].is_delete === 0">/</span>
               <div v-else-if="scope.row.rowType === 1">
-                <span class="badge" v-if="_isLock(scope.row, index)">锁定</span>
-                <!-- 计划完成：展示 -->
-                <el-popover popper-class="comPopover" :visible-arrow="false" placement="top" trigger="hover" :content="scope.row[index].maxMinText">
-                  <span slot="reference" :class="scope.row[index].error ? 'red' : ''">{{scope.row[index].time}}</span>
-                </el-popover>
+                <!-- <span class="badge" v-if="_isLock(scope.row, index)">锁定</span> -->
+                <!-- 计划完成：展示 [文本节点] -->
+                <div v-if="_isContentNode(scope.row, index)">
+                  <span>{{scope.row[index].time}}</span>
+                </div>
+                <!-- 计划完成：展示 [时间节点] -->
+                <div v-else>
+                  <el-popover popper-class="comPopover" :visible-arrow="false" placement="top" trigger="hover" :content="scope.row[index].maxMinText">
+                    <span slot="reference" :class="scope.row[index].error ? 'red' : ''">{{scope.row[index].time}}</span>
+                  </el-popover>
+                </div>
               </div>
               <!-- 本次调整 -->
-              <div v-else-if="scope.row.rowType === 2" :class="scope.row[index].error ? 'red' : ''">
-                <div style="text-align: left;">
-                  <p v-if="_isShowText(scope.row, index)">调整后：{{scope.row[index].change_plan_time}}</p>
-                  <p v-if="_isShowText(scope.row, index)">原因：{{scope.row[index].change_remaark}}</p>
+              <div v-else-if="scope.row.rowType === 2">
+                <div v-if="_isContentNode(scope.row, index)" style="text-align: left;">
+                  <p>{{scope.row[index].change_remaark}}</p>
+                </div>
+                <div v-else-if="_isShowText(scope.row, index)" :class="scope.row[index].error ? 'red' : ''" style="text-align: left;">
+                  <p>调整后：{{scope.row[index].after_plan_enddate || scope.row[index].change_plan_time || '未调整'}}</p>
+                  <p>原因：{{scope.row[index].change_remaark}}</p>
                 </div>
               </div>
               <!-- 审批调整 -->
               <div v-else-if="scope.row.rowType === 3">
-                <div style="text-align: left;" v-if="scope.row[index].audit_process_record">
-                  <p>调整后：{{scope.row[index].final_audit_plan_enddate}}</p>
-                  <p>原因：{{scope.row[index].audit_process_record}}</p>
+                <div v-if="scope.row[index].audit_process_record" style="text-align: left;">
+                  <p v-for="(val, key) in scope.row[index].audit_process_record" :key="'text_' + key">{{val}}</p>
                 </div>
               </div>
             </div>
@@ -94,7 +116,7 @@ export default {
     return {}
   },
   computed: {
-    ...mapState(['nodeData', 'gantt_type', 'item_name', 'itemSummaryItemData']),
+    ...mapState(['nodeData', 'gantt_type', 'item_name', 'itemSummaryItemData', 'pageTitle']),
     ...mapGetters(['tableList'])
   },
   methods: {
@@ -103,11 +125,11 @@ export default {
      */
     objectSpanMethod({ row, column, rowIndex, columnIndex }) {
       const { gantt_type } = this
-      let num = '0'
+      let num = 0
       if (String(gantt_type) === '3') {
         num = 5 // 工厂
       } else {
-        num = 3 // 投产、排产
+        num = 3 // 投产、排产、面料
       }
       if (columnIndex < num) {
         const { count } = row
@@ -121,18 +143,16 @@ export default {
       }
     },
     /**
-     * [是否：锁定]
+     * [是否：文本节点]
      * @param  {[Object]}  row   表格单行数据
      * @param  {[Object]}  index 节点信息
      * @return {[Boolean]}       是否显示
      */
-    _isLock(row, index) {
-      const node = row[index]
+    _isContentNode(row, index) {
+      const node = row[index] || {}
       let status = false
-      if (node) {
-        if (node.topText && String(node.adjusment_status) === '1') {
-          status = true
-        }
+      if (node.node_content_type === 'content') { // 文本节点
+        status = true
       }
       return status
     },
@@ -143,12 +163,32 @@ export default {
      * @return {[Boolean]}       是否显示
      */
     _isShowText(row, index) {
-      const node = row[index]
+      const node = row[index] || {}
       let status = false
-      if (node.change_remaark) { // 调整说明
+      const { after_plan_enddate = '', change_plan_time = '', change_remaark = '' } = node
+      if (after_plan_enddate || change_plan_time || change_remaark) { // 调整：时间 || 说明
         status = true
       }
       return status
+    },
+    /**
+     * [是否：锁定]
+     * @param  {[Object]}  row   表格单行数据
+     * @param  {[Object]}  index 节点信息
+     * @return {[Boolean]}       是否显示
+     */
+    _isLock(row, index) {
+      // const node = row[index]
+      // let status = false
+      // if (node) {
+      //   if (node.topText || String(node.adjusment_status) === '1') { // (完成待审核 || 完成) || 审核中
+      //     status = true
+      //   }
+      //   if (node.isLock) {
+      //     status = true
+      //   }
+      // }
+      // return status
     }
     //
   }
