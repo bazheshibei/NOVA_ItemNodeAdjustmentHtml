@@ -1,0 +1,159 @@
+// 组装模块并导出 store
+
+import Vue from 'vue'
+import Vuex from 'vuex'
+import Tool from './tool.js' // 工具方法
+import Dev from './dev.js' //   本地开发代码
+import Prod from './prod.js' // 生产环境代码
+Vue.use(Vuex)
+
+const store = new Vuex.Store({
+  modules: {},
+
+  state: {
+    nowCodeType: 'Prod', //     当前代码类型
+    codeObj: { Dev, Prod }, // 代码类型 { Dev: '开发', Prod: '生产' }
+    /* 本地缓存 */
+    local: {},
+    pageType: '', //                    页面类型：'4'(开发), '5'(面料), '6'(面料分色)
+    pageTitle: '', //                   页面类型：'开发'('4'), '面料'('5' || '6'), '大货'(else)
+    /* 初始化 */
+    adjustmentReason: [], //            变更原因
+    business_type: '', //               业务类型
+    ganttTemplateList: [], //           甘特表模板
+    templateObj: {}, //                 模板ID为索引的甘特表模板对象
+    itemSummaryItemData: {}, //         项目信息
+    itemSummaryDataList: [], //         项目甘特表信息
+    nodeData: [], //                    表头节点信息
+    nodeData_0: [], //                  原始表头节点信息
+    node_business_type_id: '', //       甘特表类型ID
+    gantt_type: '', //                  判断表格显示的列：甘特表类型，1大货甘特表汇总，3大货工厂甘特表
+    item_name: '', //                   项目名称
+    item_id: '', //                     项目ID
+    adjustment_id: '', //               变更ID
+    adjusmentAuditMapList: [], //       历史审核记录
+    nextAuditMap: {}, //                下一步审核
+    next_audit_stage: '', //            下一审核阶段
+    next_audit_stage_id: '', //         下一审核阶段（传给接口的ID）
+    next_audit_stage_employeeid: '', // 下一步审核人
+    nextAuditNode: 1, //                此变量 === 3 || 选择驳回，提示下一步审核结束、隐藏下一步审核人
+    next_node_type: '', //              下一审核状态
+    now_audit_stage: '', //             当前审核阶段
+    employeename: '', //                当前用户姓名
+    /* 计算依据 */
+    isToggle: false, //                 是否：切换新模板
+    activeTemplateId: '', //            当前模板ID
+    isComputed: false, //               触发：计算属性
+    changeIndexId: '', //               修改的数据索引及节点ID '4_2c9xadw244'
+    /* 整合后的基础数据（更新新模板 || 不更新） */
+    tableData: [],
+    /* 附件上传 */
+    fileList: [], //                    接口返回的附件数组
+    file: {}, //                        当前附件列表
+    del_files: [], //                   删除的附件
+    adjustment_reason: '', //           变更原因
+    adjustment_remark: '', //           变更说明
+    /* 审核 */
+    audit_result: 1, //                 审核结果
+    audit_remark: '' //                 审核意见
+  },
+
+  mutations: {
+    /**
+     * [保存数据]
+     * @param {[String]} name 属性名
+     * @param {[Object]} obj  属性值
+     */
+    saveData(state, params) {
+      const { name, obj } = params
+      state[name] = obj
+    },
+    /**
+     * [添加数据]
+     * @param {[String]} name 属性名
+     * @param {[Object]} obj  属性值
+     */
+    assignData(state, params) {
+      const { name, obj } = params
+      const data = state[name] || {}
+      state[name] = Object.assign({}, data, obj)
+    },
+    /**
+     * [添加数据]
+     * @param {[String]} name 属性名
+     * @param {[Object]} obj  属性值
+     */
+    pushData(state, params) {
+      const { name, obj } = params
+      obj.forEach(function (item) {
+        state[name].push(item)
+      })
+    },
+    /**
+     * [返回：表格数据]
+     */
+    returnTableData(state, getters) {
+      const [list, nodeData] = Tool.returnTableData(state)
+      // console.log('list ----- ', list)
+      state.tableData = list
+      state.nodeData = nodeData
+      /* 触发：计算属性 */
+      state.isComputed = true
+    }
+  },
+
+  getters: {
+    /**
+     * [计算后的表格数据]
+     */
+    tableList(state) {
+      const list = Tool.returnTableList(state)
+      state.isComputed = false
+      // console.log('计算后的表格数据 ----- ', list)
+      return list
+    },
+    /**
+     * [是否显示：切换新模板]
+     */
+    isShowToggle(state) {
+      const { activeTemplateId = '', itemSummaryDataList = [] } = state
+      let status = false
+      itemSummaryDataList.forEach(function (item) {
+        if (String(item.audit_status) === '3' && activeTemplateId && item.node_template_id !== activeTemplateId) {
+          // 审核通过 && 选了模板 && 当前数据的模板ID !== 选的模板ID
+          // 暂时取消的判断条件：  item.is_thread !== 1 不是主线
+          status = true
+        }
+      })
+      return status
+    }
+  },
+
+  // page_type:add（新增），edit(编辑），view(查看），audit(审核）
+  actions: {
+    /**
+     * [请求：大货甘特表变更初始化]
+     */
+    A_nextBatchAdjusmentItemGantt({ state, commit }) {
+      const { page_type = 'add', ...obj } = state.local
+      state.codeObj[state.nowCodeType].A_nextBatchAdjusmentItemGantt(state, commit, page_type, obj)
+    },
+
+    /**
+     * [请求：大货甘特表变更提交]
+     */
+    A_saveItemNodeAdjuestment({ state, getters }, { audit_result }) {
+      state.codeObj[state.nowCodeType].A_saveItemNodeAdjuestment(state, getters, audit_result)
+    },
+
+    /**
+     * [请求：大货甘特表变更审核提交]
+     */
+    A_adjusmentAuditSaveHtml({ state, getters }) {
+      state.codeObj[state.nowCodeType].A_adjusmentAuditSaveHtml(state, getters)
+    }
+  }
+
+})
+
+export default store

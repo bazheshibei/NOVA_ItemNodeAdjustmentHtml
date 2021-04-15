@@ -1,0 +1,219 @@
+
+<!-- 顶部 -->
+
+<template>
+  <div class="topBox" v-if="Object.keys(itemSummaryItemData).length">
+
+    <div class="formLine">
+      <!-- 业务类型 -->
+      <div class="formLabel">业务类型：</div>
+      <div class="formTextBox">
+        <div class="formText">{{business_type}}</div>
+      </div>
+      <!-- 项目信息 -->
+      <div class="formLabel">项目信息：</div>
+      <div class="formTextBox">
+        <div class="formText">{{itemSummaryItemData.itemInformation}}</div>
+      </div>
+    </div>
+
+    <div class="formLine">
+      <!-- 变更原因 -->
+      <div class="formLabel"><span class="red">*&nbsp;</span>变更原因：</div>
+      <div class="formTextBox">
+        <div class="formText">
+          <el-select class="comFormSelect" v-model="adjustment_reason" size="mini" @change="changeForm('adjustment_reason')">
+            <el-option class="comSelectOptions" v-for="(item, index) in adjustmentReason" :key="'select_' + index"
+              :label="item.dcode" :value="item.dcvalue"
+            ></el-option>
+          </el-select>
+          <div class="otherModelBox" v-if="isShowToggle">
+            <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+            <span class="red">您当前使用的模板已停用，是否更新为最新的模板？&nbsp;&nbsp;&nbsp;&nbsp;</span>
+            <el-radio v-model="newTemplate" :label="true" @change="change">是</el-radio>
+            <el-radio v-model="newTemplate" :label="false" @change="change">否</el-radio>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="formLine">
+      <!-- 变更说明 -->
+      <div class="formLabel"><span class="red">*&nbsp;</span>变更说明：</div>
+      <div class="formTextBox">
+        <div class="formText">
+           <!-- type="textarea" -->
+          <el-input v-model="adjustment_remark" size="mini" placeholder="请输入变更说明" maxlength="200" @change="changeForm('adjustment_remark')"></el-input>
+        </div>
+      </div>
+    </div>
+
+    <div class="formLine">
+      <!-- 附件说明 -->
+      <div class="formLabel">附件说明：</div>
+      <div class="formTextBox">
+        <div class="formText">
+          <el-upload class="comUpload" action="#" :multiple="true" :file-list="fileList" :limit="5"
+            :on-preview="uploadLook" :http-request="uploadRequest" :before-remove="uploadRemove" :on-exceed="uploadExceed"
+          >
+            <el-button type="primary" size="mini" plain> + 上传附件</el-button>
+          </el-upload>
+        </div>
+      </div>
+    </div>
+
+    <el-dialog class="imgDialog" title="图片预览" :visible.sync="dialogVisible" :fullscreen="true">
+      <img :src="imageUrl" :style="imageStyle" alt="">
+    </el-dialog>
+
+  </div>
+</template>
+
+<script>
+import { mapState, mapGetters } from 'vuex'
+export default {
+  data() {
+    return {
+      dialogVisible: false, //  是否：显示预览
+      imageStyle: {}, //        图片样式
+      imageUrl: '', //          图片地址
+      adjustment_reason: '', // 变更原因
+      adjustment_remark: '', // 变更说明
+      newTemplate: false
+    }
+  },
+  computed: {
+    ...mapState(['business_type', 'adjustmentReason', 'file', 'fileList']),
+    ...mapGetters(['isShowToggle']),
+    ...mapState({
+      itemSummaryItemData: function (state) { // 项目信息
+        const { adjustment_reason, adjustment_remark } = state
+        this.adjustment_reason = adjustment_reason
+        this.adjustment_remark = adjustment_remark
+        return state.itemSummaryItemData
+      }
+    })
+  },
+  methods: {
+    /**
+     * [记录：变更原因、说明]
+     * @param {[String]} name 属性名
+     */
+    changeForm(name) {
+      this.$store.commit('saveData', { name, obj: this[name] })
+    },
+    /**
+     * [上传附件：查看]
+     */
+    uploadLook(file) {
+      const { acce_id, name, url, is_pic } = file
+      if (acce_id) {
+        if (is_pic === 1) {
+          /* 服务器图片：预览 */
+          this.imageUrl = url
+          this.dialogVisible = true
+        } else {
+          /* 服务器文件：下载 */
+          const a = document.createElement('a')
+          a.href = url
+          a.download = name
+          a.click()
+        }
+      } else if (url.indexOf('blob') !== -1 && file.raw.type.indexOf('image') !== -1) {
+        /* 本地图片：预览 */
+        this.imageUrl = url
+        this.dialogVisible = true
+      }
+    },
+    /**
+     * [上传附件：覆盖默认的上传行为]
+     */
+    uploadRequest(params) {
+      const { file } = this.$store.state
+      file[params.file.uid] = params.file
+      this.$store.commit('assignData', { name: 'file', obj: file })
+    },
+    /**
+     * [上传附件：删除]
+     * @param {[Object]} file 删除的图片信息
+     */
+    uploadRemove(file) {
+      const { file: obj, del_files } = this.$store.state
+      const { uid, acce_id } = file
+      if (acce_id) {
+        /* 删除数据：之前保存 */
+        del_files.push(acce_id)
+      } else {
+        /* 删除数据：新上传 */
+        delete obj[uid]
+        this.$store.commit('assignData', { name: 'file', obj })
+      }
+    },
+    uploadExceed() {
+      this.$message({ message: '最多上传 5 个附件', type: 'warning' })
+    },
+    /**
+     * [是否更新模板]
+     * @param {[Boolean]} event true || false
+     */
+    change(event) {
+      this.$store.commit('saveData', { name: 'isToggle', obj: event })
+      this.$store.commit('returnTableData')
+    }
+  }
+}
+</script>
+
+<style scoped>
+/*** 顶部 ***/
+.topBox {
+  width: 100%;
+}
+</style>
+
+<style>
+/*** 上传组件 ***/
+.comUpload {
+  display: flex !important;
+  align-items: center !important;
+}
+.comUpload > .el-upload > button {
+  margin-right: 20px !important;
+}
+.comUpload > .el-upload-list {
+  display: flex !important;
+  flex-wrap: wrap !important;
+}
+.comUpload > .el-upload-list > .el-upload-list__item {
+  height: 25px !important;
+  margin: 0 10px 0 0 !important;
+  padding: 0 10px 0 3px !important;
+  background-color: #ecf5ff !important;
+  border-radius: 4px !important;
+  border: none !important;
+  flex: 1 !important;
+}
+.comUpload > .el-upload-list > .el-upload-list__item:focus { /* 隐藏：点击后的轮廓 */
+  outline: none !important;
+}
+.comUpload > .el-upload-list > .el-upload-list__item > img { /* 隐藏：图片缩略图 */
+  display: none !important;
+}
+.comUpload > .el-upload-list > .el-upload-list__item > .el-icon-close-tip { /* 隐藏：删除提示 */
+  display: none !important;
+}
+.comUpload > .el-upload-list > .el-upload-list__item > .el-icon-close { /* 调整：删除按钮位置 */
+  top: 7px !important;
+}
+.comUpload > .el-upload-list > .el-upload-list__item > .el-upload-list__item-name {
+  cursor: pointer !important;
+  margin: 0 10px 0 0 !important;
+}
+.comUpload > .el-upload-list > .el-upload-list__item > .el-upload-list__item-name > i { /* 隐藏：默认图标 */
+  display: none !important;
+}
+/*** 预览 ***/
+.imgDialog > .el-dialog > .el-dialog__body {
+  padding: 0 20px 20px !important;
+}
+</style>
